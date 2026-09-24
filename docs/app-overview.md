@@ -58,6 +58,8 @@ At this size, loading relevant rows and computing stats in the request is expect
 
 Users should be able to look through the dataset in a simple UI: tournament list, a single tournament (players, games, official standings), and player-centric views.
 
+The tournament index (`/turnieje`) is a single column of cards, newest `held_on` first, with no pagination. Each card shows the tournament name (link to that tournament), the date as `DD.MM.YYYY`, and official places 1–3 that exist: a medal icon and the player name (link to the player). Points are not shown on the card. An empty list and a failed load each show one sentence under the heading.
+
 Keep UX **simple**. Prefer lists, tables, and filters over dashboards, widgets, or marketing layout.
 
 ### Statistics
