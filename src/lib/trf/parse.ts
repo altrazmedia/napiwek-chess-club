@@ -144,6 +144,24 @@ function parseTrfDate(raw: string): string {
   return `${match[1]}-${match[2]}-${match[3]}`;
 }
 
+/**
+ * Index of the character immediately after the birth-date column.
+ * Points begin two characters later, whether or not a date was written.
+ */
+function resultsOrigin(line: string, startNumber: number): number {
+  const birthDate = /\d{4}\/\d{2}\/\d{2}/.exec(line);
+  if (birthDate) {
+    return birthDate.index + birthDate[0].length;
+  }
+
+  const points = /(\d{1,2}\.\d)(?=\s+\d{1,4}\s+(?:\d+|0000)\s+[wb-])/i.exec(line);
+  if (!points) {
+    throw new TrfParseError(`Missing points for player ${startNumber}`);
+  }
+  // Points are right-aligned in 4 columns, so the number ends where that field ends.
+  return points.index + points[1].length - 5;
+}
+
 function parsePlayerLine(line: string): RawPlayer {
   // TRF16 1-based columns → 0-based slice ends are exclusive.
   const startNumber = Number.parseInt(line.slice(4, 8).trim(), 10);
@@ -161,12 +179,9 @@ function parsePlayerLine(line: string): RawPlayer {
   }
 
   // ChessManager sometimes widens the name field, which shifts every later column.
-  // Birth date stays YYYY/MM/DD, so points, rank, and pairings are read from there.
-  const birthDate = /\d{4}\/\d{2}\/\d{2}/.exec(line);
-  if (!birthDate) {
-    throw new TrfParseError(`Missing birth date for player ${startNumber}`);
-  }
-  const afterBirthDate = birthDate.index + birthDate[0].length;
+  // A YYYY/MM/DD birth date is a stable anchor when present. We do not store it,
+  // so a missing date falls back to the points field (always right-aligned, one decimal).
+  const afterBirthDate = resultsOrigin(line, startNumber);
 
   const pointsRaw = line.slice(afterBirthDate + 1, afterBirthDate + 5).trim();
   const points = normalizePoints(pointsRaw);
