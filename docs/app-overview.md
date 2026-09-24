@@ -79,7 +79,9 @@ Do **not** freeze a stats catalog in code unless a later product decision specif
 
 There must be an **HTTP API** to add a new tournament. There is **no** admin panel and **no** upload UI.
 
-Payload format (JSON vs TRF vs CSV vs something else) is **deferred**. Implement a write endpoint that is protected; do not invent a public file-import UI.
+**Payload (locked):** FIDE-style **TRF** text, posted as the raw body to `POST /api/upload-tournament-trf` with a Bearer token. The handler creates the tournament, roster, games, and official standings (place + points; tie-breaks null when absent from TRF). Do not invent a public file-import UI.
+
+**Player identity on upload (locked):** match existing players by **first name + last name**, case-insensitive and accent-insensitive. TRF names are `"Lastname, Firstname"` or `"Firstname Lastname"`. New players get slug `firstname-lastname` (ASCII-folded kebab). Tournament slug is the start date `YYYY-MM-DD` (TRF `042`). Re-upload of the same date slug is rejected (`409`).
 
 ## Important product decisions
 
@@ -126,9 +128,9 @@ Chart UI is **out of scope** until a later decision. Do not add a chart library 
 | Topic | Status |
 | --- | --- |
 | Postgres schema | Decided. See [schema.md](./schema.md). |
-| How the same person is recognized across tournaments (name matching, IDs) | Later (upload API / identity). Schema assumes stable `player_id`s. |
+| How the same person is recognized across tournaments | Decided for upload: first+last, case- and accent-insensitive. Schema still stores non-unique names. |
 | Exact list of stats and page layout | Later. Examples above are hints only. |
-| Upload body format | Later. Assume a write API exists. |
+| Upload body format | Decided: TRF at `POST /api/upload-tournament-trf`. |
 | Charts | Later. |
 | Edit/delete tournament after upload | Not decided. Do not build unless asked. |
 | Custom domain, SEO program, PWA | Not decided; not required for v1. |

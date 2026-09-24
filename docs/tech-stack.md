@@ -44,7 +44,7 @@ Implication: no Redis, no worker, no second service, no monorepo, no Edge-only e
 ```text
 Visitors  →  Next.js on Vercel (Server Components, pages)
 Pages     →  src/lib/db/queries  →  Neon rows  →  src/lib/stats (pure)  →  HTML
-Operator  →  POST src/app/api/...  (Bearer token)  →  src/lib/db/writes  →  Neon
+Operator  →  POST /api/upload-tournament-trf  (Bearer token)  →  src/lib/db/writes  →  Neon
 ```
 
 - **Source of truth:** rows in Neon (tournaments, players, games, official standings). See [schema.md](./schema.md).
@@ -106,11 +106,11 @@ Dataset is small; aggregations are cheap. Operator must not re-upload career sta
 
 **Upload handler must:**
 
-1. Reject missing/invalid `Authorization: Bearer` vs `UPLOAD_TOKEN` (constant-time compare).
-2. Validate body with Zod **once the payload is specified**.
+1. Reject missing/invalid `Authorization: Bearer` vs `UPLOAD_TOKEN` via shared `requireUploadToken` (`src/lib/auth/require-upload-token.ts`, constant-time compare).
+2. Validate the body with Zod (non-empty TRF text).
 3. Insert **raw** tournament data only (no derived stats writes).
 
-Until payload format is decided: you may stub the route (401/403 without token, 501 or 400 for body) rather than invent a schema. Do not ship an open endpoint.
+**Upload route (locked):** `POST /api/upload-tournament-trf`. Body is raw TRF text (`Content-Type: text/plain`). Do not ship an open endpoint.
 
 ### Why no React Query / no client fetch layer
 
@@ -128,7 +128,7 @@ One locale. i18n routing and message catalogs are extra machinery. If a second l
 
 ### Why Zod
 
-Single schema for upload (when defined) and for search-param parsing. Do not hand-roll validators. Do not add Yup/Valibot as well.
+Single schema for the upload body (non-empty TRF text) and for search-param parsing. Do not hand-roll validators. Do not add Yup/Valibot as well.
 
 ### Why Prettier
 
@@ -164,9 +164,11 @@ Organize by layer. No `features/` or `domains/` folders. Single package, `src/` 
 ```text
 src/app/                      # routes, layouts, and the upload Route Handler
 src/app/<route>/…             # components used by that route only
-src/app/api/<path>/route.ts   # upload POST only; path deferred with the payload
+src/app/api/upload-tournament-trf/route.ts  # TRF upload POST
 src/components/               # shared components, moved here on the second use
 src/components/ui/            # shadcn only, added when a page uses them
+src/lib/auth/                 # upload Bearer check (shared helper)
+src/lib/trf/                  # TRF16 parse helpers for upload
 src/lib/db/index.ts           # Drizzle client (private)
 src/lib/db/schema.ts
 src/lib/db/queries/           # read functions, added with the first caller
@@ -204,7 +206,7 @@ src/lib/db/queries/tournaments.ts    # getTournamentBySlug → rows or null
 
 The only HTTP API is the upload POST. There is no read API. Pages call query functions directly and do not fetch JSON.
 
-`src/app/api/<path>/route.ts` checks the bearer token, validates the body with Zod, and calls `src/lib/db/writes/`. The route path stays deferred until the payload is decided. A later public JSON route, if added, would be another `route.ts` under `src/app/api/` calling the same query functions. Do not add it for the UI.
+`src/app/api/upload-tournament-trf/route.ts` checks the bearer token (`requireUploadToken`), validates the raw TRF body with Zod, parses TRF in `src/lib/trf/`, and calls `src/lib/db/writes/upload-tournament-trf.ts`. A later public JSON route, if added, would be another `route.ts` under `src/app/api/` calling the same query functions. Do not add it for the UI.
 
 ### Import boundary
 
@@ -224,7 +226,7 @@ Never commit secrets. Never log the token.
 
 1. **Prefer the listed tools.** New dependencies need a real gap in this document, not taste.
 2. **Do not invent a second DB schema.** Implement Drizzle from [schema.md](./schema.md) in a dedicated change; Drizzle is the only mapper.
-3. **Do not invent the upload JSON/TRF/CSV contract** unless that task is in scope. Keep the route token-protected.
+3. **Upload contract is TRF** at `POST /api/upload-tournament-trf` (raw text body). Keep the route token-protected.
 4. **Do not pick a final stats catalog** unless that task is in scope. Put new metrics in `src/lib/stats` as functions over games/standings.
 5. **Do not add charts** while building tables.
 6. **Keep UX simple:** lists, tables, filters. Polish copy.
@@ -236,9 +238,9 @@ Never commit secrets. Never log the token.
 
 Not decided; do not silently fill them in:
 
-- Player identity across tournaments (how an upload attaches a name to a `player_id`)
-- Upload payload format and exact route path
 - Which stats render on which page
 - Chart library and chart UI
 - Edit/delete APIs after upload
 - Test runner beyond ESLint
+
+**Locked with the upload route:** player identity on upload is first+last name, case- and accent-insensitive (see [app-overview.md](./app-overview.md)). Payload is TRF at `POST /api/upload-tournament-trf`.

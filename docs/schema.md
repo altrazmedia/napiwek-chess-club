@@ -30,7 +30,7 @@ Do not add columns or tables for:
 - comments, photos, bios
 - `deleted_at` (edit/delete after upload is still undecided)
 
-**Player identity matching** (how an upload attaches a name to an existing player) is **not** this document. The schema assumes stable `player_id`s. Names are not unique.
+**Player identity matching** lives in the upload layer (see [app-overview.md](./app-overview.md) / [tech-stack.md](./tech-stack.md)), not in this schema. Names are not unique here; the upload API attaches a TRF name to a `player_id`. The schema assumes stable `player_id`s once resolved.
 
 ## Enum: `game_result`
 
