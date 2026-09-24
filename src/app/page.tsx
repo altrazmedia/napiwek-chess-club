@@ -1,7 +1,6 @@
+import { redirect } from "next/navigation";
+import { routes } from "@/lib/routes";
+
 export default function Home() {
-  return (
-    <main className="p-8">
-      <h1 className="text-2xl font-semibold">Napiwek</h1>
-    </main>
-  );
+  redirect(routes.tournaments);
 }
