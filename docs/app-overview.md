@@ -69,13 +69,26 @@ Stats are a core part of the product, not a later add-on. They must support:
 - **all tournaments**, or
 - a **specific time range** (filter by tournament date)
 
-Example stats (illustrative — **which exact stats appear on which page is not decided yet**):
+The **statistics page** (`/statystyki`) is locked. It shows all tournaments (no date controls on the page). Stats functions still take an optional inclusive date range on `held_on` so a filter can be added later without rewriting the math.
+
+Played games are only `white_win`, `black_win`, and `draw`. Byes, forfeits, and unplayed pairings are ignored in every game count, win, and win percentage.
+
+The page shows:
+
+- **Ogółem:** number of played games, white wins, black wins, and draws. Those three results add up to the game total. Zeros stay visible.
+- **Najwięcej turniejów** (top 5): roster rows in `tournament_players`. Column: Turnieje.
+- **Najwięcej wygranych partii** (top 5): played-game wins. Column: Wygrane.
+- **Najlepszy procent wygranych** (top 5): wins / played games, draws in the denominator, minimum 15 played games. Rank by the exact ratio. Display one decimal and the fraction, e.g. `60,0% (12/20)`. Column: Procent.
+- **Najwięcej wygranych turniejów** (top 5): official `standings.position = 1`. Column: Wygrane turnieje.
+
+Each player block is a table: player name (link to the player page) and the number for that stat. Players with 0 do not qualify. If fewer than 5 qualify, show fewer. If the 5th place is tied, show everyone with that value, so a table can have more than 5 rows. Within one value, order by last name, then first name. An empty ranking is the heading plus one sentence.
+
+Player-page stats and head-to-head stats are **not** decided yet. Examples (hints only):
 
 - **Player profile:** tournaments played, total points, win percentage, win % as white / as black, most common opponent, strongest opponent, etc.
-- **All-time standings:** rank players by total points across tournaments, or by win percentage, etc.
 - **Head-to-head:** games between two selected players, plus aggregate stats for that pair
 
-Do **not** freeze a stats catalog in code unless a later product decision specifies it. Build the **capability** (query games/standings in a date range, aggregate in one place) so new stats can be added as functions without a new data pipeline.
+Build the **capability** (query games/standings in a date range, aggregate in one place) so new stats can be added as functions without a new data pipeline.
 
 ### Upload a tournament
 
@@ -131,7 +144,8 @@ Chart UI is **out of scope** until a later decision. Do not add a chart library 
 | --- | --- |
 | Postgres schema | Decided. See [schema.md](./schema.md). |
 | How the same person is recognized across tournaments | Decided for upload: first+last, case- and accent-insensitive. Schema still stores non-unique names. |
-| Exact list of stats and page layout | Later. Examples above are hints only. |
+| Statistics page catalog and layout | Decided. See [Statistics](#statistics). |
+| Player-page and head-to-head stats | Later. Examples above are hints only. |
 | Upload body format | Decided: TRF at `POST /api/upload-tournament-trf`. |
 | Charts | Later. |
 | Edit/delete tournament after upload | Not decided. Do not build unless asked. |

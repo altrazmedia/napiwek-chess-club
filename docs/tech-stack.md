@@ -238,7 +238,7 @@ Never commit secrets. Never log the token.
 
 Not decided; do not silently fill them in:
 
-- Which stats render on which page
+- Which stats render on the player page and head-to-head (the statistics page catalog is locked in [app-overview.md](./app-overview.md))
 - Chart library and chart UI
 - Edit/delete APIs after upload
 - Test runner beyond ESLint
