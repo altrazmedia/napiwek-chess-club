@@ -60,6 +60,14 @@ Users should be able to look through the dataset in a simple UI: tournament list
 
 The tournament index (`/turnieje`) is a single column of cards, newest `held_on` first, with no pagination. Each card shows the tournament name (link to that tournament), the date as `DD.MM.YYYY`, and official places 1–3 that exist: a medal icon and the player name (link to the player). Points are not shown on the card. An empty list and a failed load each show one sentence under the heading.
 
+The tournament page (`/turnieje/[slug]`) shows, from top to bottom, the tournament name, the date as `DD.MM.YYYY`, the standings, and the games. A missing slug is a 404. A failed load is one sentence.
+
+**Klasyfikacja** lists every player, ordered by official `position`. Columns: Miejsce, Zawodnik (link to the player), Punkty. Points use a Polish decimal comma and drop a trailing zero (`4`, `4,5`). Buchholz, Buchholz−1, and Sonneborn-Berger stay in the database and are not shown here yet. An empty table is the heading plus one sentence.
+
+Games have no extra section heading. They are grouped under `Runda N`, rounds ascending. Inside a round, rows are ordered by the left-side player's last name, then first name (Polish collation). That player is White, or the only player on a bye. This is not the pairing-sheet order.
+
+Each game is three columns: White's name on the left (right-aligned), the result centered, Black's name on the right (left-aligned). Names link to the player. The winner's name is bold. A draw bolds neither name. Played scores are `1 - 0`, `0 - 1`, and `½ - ½`. A forfeit uses that same score, with `walkower` in smaller text under it. A bye keeps the player on the left and centers `(bye)` in the result column; the name is not bold. `(bye)` is the one English label on this page. An unplayed game shows both names and `nie rozegrano` in the result column, with neither name bold. If there are no games, the page shows one sentence.
+
 Keep UX **simple**. Prefer lists, tables, and filters over dashboards, widgets, or marketing layout.
 
 ### Statistics
@@ -148,6 +156,7 @@ Chart UI is **out of scope** until a later decision. Do not add a chart library 
 | Player-page and head-to-head stats | Later. Examples above are hints only. |
 | Upload body format | Decided: TRF at `POST /api/upload-tournament-trf`. |
 | Charts | Later. |
+| Tie-break columns on the tournament page | Later. Values stay in `standings`. The page shows place, player, and points. |
 | Edit/delete tournament after upload | Not decided. Do not build unless asked. |
 | Custom domain, SEO program, PWA | Not decided; not required for v1. |
 

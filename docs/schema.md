@@ -177,7 +177,7 @@ Also:
 No extra tables.
 
 - **Tournament list:** `tournaments` + `count(tournament_players)` + `standings` where `position <= 3`
-- **Tournament page:** games ordered by `round`; standings ordered by `position`
+- **Tournament page:** standings ordered by `position`; games grouped by `round`, and within a round by the left-side player's last name, then first name (White, or the only player on a bye)
 - **Global stats / time range:** filter `tournaments.held_on`, then aggregate those `games` / `standings`
 - **Player search:** `ILIKE` on `full_name` / first / last
 - **Player page:** games where they are white or black; `standings` for place in each event; opponents via the other seat

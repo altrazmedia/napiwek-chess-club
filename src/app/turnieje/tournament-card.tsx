@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Medal } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TournamentListItem } from "@/lib/db/queries/tournaments";
+import { formatHeldOn } from "@/lib/format-held-on";
 import { routes } from "@/lib/routes";
 
 const medalClassName: Record<number, string> = {
@@ -9,14 +10,6 @@ const medalClassName: Record<number, string> = {
   2: "text-zinc-400",
   3: "text-amber-700",
 };
-
-function formatHeldOn(heldOn: string) {
-  const [year, month, day] = heldOn.split("-");
-  if (!year || !month || !day) {
-    return heldOn;
-  }
-  return `${day}.${month}.${year}`;
-}
 
 export function TournamentCard({ tournament }: { tournament: TournamentListItem }) {
   return (
