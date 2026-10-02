@@ -68,6 +68,8 @@ Games have no extra section heading. They are grouped under `Runda N`, rounds as
 
 Each game is three columns: White's name on the left (right-aligned), the result centered, Black's name on the right (left-aligned). Names link to the player. The winner's name is bold. A draw bolds neither name. Played scores are `1 - 0`, `0 - 1`, and `½ - ½`. A forfeit uses that same score, with `walkower` in smaller text under it. A bye keeps the player on the left and centers `(bye)` in the result column; the name is not bold. `(bye)` is the one English label on this page. An unplayed game shows both names and `nie rozegrano` in the result column, with neither name bold. If there are no games, the page shows one sentence.
 
+The players index (`/zawodnicy`) lists every player, with no pagination. Order is last name, then first name, then slug, A to Z, Polish collation. Layout is one card per row below the `md` breakpoint and three equal columns from `md` up. A short last row stays left-aligned. Each card is one link to that player. It shows the full name, then `Rozegrane turnieje: N` (roster rows in `tournament_players`) and `Rozegrane partie: N` (played games only: `white_win`, `black_win`, `draw`; the player is white or black). Zeros stay visible. A **Szukaj** field above the list filters as you type in the browser. The URL stays `/zawodnicy`. The match is a case-insensitive substring of the first name, the last name, or `first last`, with Polish case-folding and no accent folding. An empty club and a failed load each show one sentence under the heading, and no field. No matches keeps the field and shows one sentence under it.
+
 Keep UX **simple**. Prefer lists, tables, and filters over dashboards, widgets, or marketing layout.
 
 ### Statistics

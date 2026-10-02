@@ -21,7 +21,7 @@ Follow this document unless a later explicit decision supersedes it. Do not add 
 | Stats | Compute **on each request** from raw rows | Dataset is tiny; new stats = new function, no backfill. Precompute later if needed. |
 | Validation | **Zod** | Upload body and query/search params. |
 | Formatting | **Prettier** + `eslint-config-prettier` + `prettier-plugin-tailwindcss` | ESLint lints. Prettier formats (`printWidth` 100). The Tailwind plugin sorts class strings. |
-| Data fetching (browse) | **Server Components** + **URL search params** | No React Query. Time range and player pickers are shareable URLs. |
+| Data fetching (browse) | **Server Components** + **URL search params** | No React Query. Time range and player pickers are shareable URLs. The players name box is the exception: it filters the loaded list in the browser and does not change the URL. |
 
 **Current framework versions to start from (as of 2026-09):** Next.js **16** (LTS) + React **19**. Use `create-next-app` defaults (App Router, TypeScript, Tailwind, ESLint). Prefer current stable, not a frozen old major.
 
@@ -115,6 +115,8 @@ Dataset is small; aggregations are cheap. Operator must not re-upload career sta
 ### Why no React Query / no client fetch layer
 
 Browse pages are Server Components. Filters (time range, player ids) belong in the **URL** so links are shareable and the server can compute stats on the request. Add a client data library only if a later UI truly needs interactive client caching.
+
+**Exception:** the name field on `/zawodnicy` filters the full player list in the browser. The server still loads every player. The URL stays `/zawodnicy`. That filter does not use a search param or a client data library.
 
 ### Why Tailwind + shadcn (not MUI, not CSS-only)
 
