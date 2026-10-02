@@ -8,16 +8,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { TournamentStanding } from "@/lib/db/queries/tournaments";
+import { formatPoints } from "@/lib/format-points";
 import { routes } from "@/lib/routes";
-
-const pointsFormat = new Intl.NumberFormat("pl-PL", {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 1,
-});
-
-function formatPoints(points: string) {
-  return pointsFormat.format(Number(points));
-}
 
 export function StandingsTable({ standings }: { standings: TournamentStanding[] }) {
   return (

@@ -1,5 +1,6 @@
 import { PageShell } from "@/components/page-shell";
 import { loadStatsRows } from "@/lib/db/queries/stats";
+import { formatWinRate } from "@/lib/format-win-rate";
 import {
   globalGameCounts,
   topByTournamentWins,
@@ -9,15 +10,6 @@ import {
 } from "@/lib/stats/club";
 import type { PlayerRank, StatsRows, WinRateRank } from "@/lib/stats/types";
 import { PlayersStatisticsTable, type PlayersStatisticsRow } from "./players-statistics-table";
-
-const percentFormat = new Intl.NumberFormat("pl-PL", {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-});
-
-function formatWinRate(wins: number, played: number) {
-  return `${percentFormat.format((wins / played) * 100)}% (${wins}/${played})`;
-}
 
 function countRows(players: PlayerRank[]): PlayersStatisticsRow[] {
   return players.map((player) => ({

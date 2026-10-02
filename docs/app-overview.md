@@ -70,6 +70,14 @@ Each game is three columns: White's name on the left (right-aligned), the result
 
 The players index (`/zawodnicy`) lists every player, with no pagination. Order is last name, then first name, then slug, A to Z, Polish collation. Layout is one card per row below the `md` breakpoint and three equal columns from `md` up. A short last row stays left-aligned. Each card is one link to that player. It shows the full name, then `Rozegrane turnieje: N` (roster rows in `tournament_players`) and `Rozegrane partie: N` (played games only: `white_win`, `black_win`, `draw`; the player is white or black). Zeros stay visible. A **Szukaj** field above the list filters as you type in the browser. The URL stays `/zawodnicy`. The match is a case-insensitive substring of the first name, the last name, or `first last`, with Polish case-folding and no accent folding. An empty club and a failed load each show one sentence under the heading, and no field. No matches keeps the field and shows one sentence under it.
 
+The player page (`/zawodnicy/[slug]`) shows the full name, then **Statystyki partii**, **Rozegrane turnieje**, and **Najczęstsi przeciwnicy**. A missing slug is a 404. A failed player lookup is one sentence under the title `Zawodnik`. Each block loads on its own. A failed block is one sentence in that block. The page shows all tournaments (no date controls). The stats functions still take an optional inclusive date range on `held_on`, and both the roster gate and the game counts use that range. The page is plain text until charts are in scope.
+
+**Statystyki partii** has Ogólnie, Białymi, and Czarnymi. Played games are only `white_win`, `black_win`, and `draw`. Byes, forfeits, and unplayed pairings are ignored. A win is the player's own color winning; the other color's win is a loss. Each block shows Rozegrane, Zwycięstwa, Remisy, and Porażki. Zeros stay visible, including a color with no games. A result line is the count and the same win-rate form as the statistics page: one decimal, a Polish comma, and the fraction, e.g. `Zwycięstwa: 12 (60,0% (12/20))`. Zero played games in that block read `0 (0,0% (0/0))`. Each percentage is rounded on its own.
+
+**Rozegrane turnieje** is the roster count in `tournament_players`, including a tournament with no played games. **Zwycięstwa w turniejach** is official `standings.position = 1`. **Podium w turniejach** is official `position` 1–3, so a win is also a podium. Then every tournament, newest `held_on` first. Each row links the tournament name, then the date as `DD.MM.YYYY`, the place, and points: `{name} — {date} — {position}. miejsce, {points} pkt`. Points use a Polish decimal comma and drop a trailing zero (`4`, `4,5`). No tournaments: both counts are 0 and one sentence replaces the list.
+
+**Najczęstsi przeciwnicy** is omitted when the player has fewer than 3 roster tournaments. Otherwise opponents are ranked by played games together. Each row links the opponent's name and shows the game count with Polish pluralization (`1 partia`, `2 partie`, `5 partii`, `22 partie`). If several opponents share the 3rd-place count, show all of them. If fewer than 3 qualify, show those. Within one count, order by last name, then first name, Polish collation. Three or more tournaments but no played opponents: the heading plus one sentence.
+
 Keep UX **simple**. Prefer lists, tables, and filters over dashboards, widgets, or marketing layout.
 
 ### Statistics
@@ -93,10 +101,7 @@ The page shows:
 
 Each player block is a table: player name (link to the player page) and the number for that stat. Players with 0 do not qualify. If fewer than 5 qualify, show fewer. If the 5th place is tied, show everyone with that value, so a table can have more than 5 rows. Within one value, order by last name, then first name. An empty ranking is the heading plus one sentence.
 
-Player-page stats and head-to-head stats are **not** decided yet. Examples (hints only):
-
-- **Player profile:** tournaments played, total points, win percentage, win % as white / as black, most common opponent, strongest opponent, etc.
-- **Head-to-head:** games between two selected players, plus aggregate stats for that pair
+The player page is locked under [Browse stored tournaments](#browse-stored-tournaments). Head-to-head stats are **not** decided yet. Example (hint only): games between two selected players, plus aggregate stats for that pair.
 
 Build the **capability** (query games/standings in a date range, aggregate in one place) so new stats can be added as functions without a new data pipeline.
 
@@ -155,7 +160,8 @@ Chart UI is **out of scope** until a later decision. Do not add a chart library 
 | Postgres schema | Decided. See [schema.md](./schema.md). |
 | How the same person is recognized across tournaments | Decided for upload: first+last, case- and accent-insensitive. Schema still stores non-unique names. |
 | Statistics page catalog and layout | Decided. See [Statistics](#statistics). |
-| Player-page and head-to-head stats | Later. Examples above are hints only. |
+| Player page | Decided. See [Browse stored tournaments](#browse-stored-tournaments). |
+| Head-to-head stats | Later. |
 | Upload body format | Decided: TRF at `POST /api/upload-tournament-trf`. |
 | Charts | Later. |
 | Tie-break columns on the tournament page | Later. Values stay in `standings`. The page shows place, player, and points. |
