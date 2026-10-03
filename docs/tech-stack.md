@@ -21,7 +21,7 @@ Follow this document unless a later explicit decision supersedes it. Do not add 
 | Stats | Compute **on each request** from raw rows | Dataset is tiny; new stats = new function, no backfill. Precompute later if needed. |
 | Validation | **Zod** | Upload body and query/search params. |
 | Formatting | **Prettier** + `eslint-config-prettier` + `prettier-plugin-tailwindcss` | ESLint lints. Prettier formats (`printWidth` 100). The Tailwind plugin sorts class strings. |
-| Data fetching (browse) | **Server Components** + **URL search params** | No React Query. Time range and player pickers are shareable URLs. The players name box is the exception: it filters the loaded list in the browser and does not change the URL. |
+| Data fetching (browse) | **Server Components** + shareable URLs | No React Query. Time range filters use search params. Head-to-head players are path slugs (`/head-to-head/a/b`). Typing in a picker, like Szukaj on `/zawodnicy`, filters the loaded list in the browser and does not change the URL. |
 
 **Current framework versions to start from (as of 2026-09):** Next.js **16** (LTS) + React **19**. Use `create-next-app` defaults (App Router, TypeScript, Tailwind, ESLint). Prefer current stable, not a frozen old major.
 
@@ -116,7 +116,7 @@ Dataset is small; aggregations are cheap. Operator must not re-upload career sta
 
 Browse pages are Server Components. Filters (time range, player ids) belong in the **URL** so links are shareable and the server can compute stats on the request. Add a client data library only if a later UI truly needs interactive client caching.
 
-**Exception:** the name field on `/zawodnicy` filters the full player list in the browser. The server still loads every player. The URL stays `/zawodnicy`. That filter does not use a search param or a client data library.
+**Exception:** the name field on `/zawodnicy` filters the full player list in the browser. The server still loads every player. The URL stays `/zawodnicy`. That filter does not use a search param or a client data library. Head-to-head selection is the path `/head-to-head/[slug]/[slug]`. Typing in those pickers filters the same way and does not change the URL. **Pokaż** writes the two slugs into the path.
 
 ### Why Tailwind + shadcn (not MUI, not CSS-only)
 
@@ -240,7 +240,6 @@ Never commit secrets. Never log the token.
 
 Not decided; do not silently fill them in:
 
-- Head-to-head stats (the statistics page and the player page are locked in [app-overview.md](./app-overview.md))
 - Chart library and chart UI
 - Edit/delete APIs after upload
 - Test runner beyond ESLint

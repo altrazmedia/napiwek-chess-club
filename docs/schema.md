@@ -181,5 +181,5 @@ No extra tables.
 - **Global stats / time range:** filter `tournaments.held_on`, then aggregate those `games` / `standings`
 - **Players index:** every `players` row, plus a roster count from `tournament_players` and a played-game count from `games` where `result` is `white_win`, `black_win`, or `draw`. The name filter runs in the client on that list. It does not query with `ILIKE`.
 - **Player page:** games where they are white or black; `standings` for place in each event; opponents via the other seat
-- **Head-to-head:** games where the two ids occupy the two seats (exclude `bye`; whether forfeits count is a stats-function decision)
+- **Head-to-head:** games where the two ids occupy the two seats and `result` is `white_win`, `black_win`, or `draw`. Byes, forfeits, and unplayed pairings are excluded.
 - **Most common pairs:** `least(white_player_id, black_player_id)`, `greatest(...)` on non-bye rows

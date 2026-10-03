@@ -101,9 +101,33 @@ The page shows:
 
 Each player block is a table: player name (link to the player page) and the number for that stat. Players with 0 do not qualify. If fewer than 5 qualify, show fewer. If the 5th place is tied, show everyone with that value, so a table can have more than 5 rows. Within one value, order by last name, then first name. An empty ranking is the heading plus one sentence.
 
-The player page is locked under [Browse stored tournaments](#browse-stored-tournaments). Head-to-head stats are **not** decided yet. Example (hint only): games between two selected players, plus aggregate stats for that pair.
+The player page is locked under [Browse stored tournaments](#browse-stored-tournaments). Head-to-head is locked under [Head-to-head](#head-to-head).
 
 Build the **capability** (query games/standings in a date range, aggregate in one place) so new stats can be added as functions without a new data pipeline.
+
+### Head-to-head
+
+The head-to-head page (`/head-to-head`, `/head-to-head/[slug]`, `/head-to-head/[slug]/[slug]`) compares two players. More than two slugs is a 404.
+
+Slugs are resolved in order. A slug with no player is dropped. A second slug that repeats the first is dropped. If the cleaned path differs from the request, the page redirects to it. `/missing/jan` and `/jan/jan` both become `/head-to-head/jan`. Two unknown slugs become `/head-to-head`. One remaining slug fills the first picker and leaves the second empty. Totals and the game list appear only when two different players are in the URL.
+
+`/a/b` and `/b/a` load the same games. The first slug is the left player in the summary. Submit keeps the order of the two pickers. The game list does not swap: White is always on the left.
+
+The page shows all tournaments (no date controls). The query and the aggregate function still take an optional inclusive date range on `held_on`.
+
+Two comboboxes list every player, ordered by last name, then first name, then slug, Polish collation. Labels are `Pierwszy zawodnik` and `Drugi zawodnik`. Each closed value shows the full name. Placeholder: `Wybierz zawodnika`. Each filters on its own in the browser. The match is a case-insensitive substring of the first name, the last name, or `first last`, with Polish case-folding and no accent folding. The URL does not change while typing. No matches: `Brak zawodników o tym imieniu lub nazwisku.` The second list omits whoever is selected in the first. If the first selection becomes the player in the second, the second selection clears.
+
+**Pokaż** is disabled until two different players are selected. It navigates to `/head-to-head/{first}/{second}` in that order.
+
+An empty club shows `Nie ma jeszcze zawodników.` A failed player load shows `Nie udało się wczytać zawodników.` Neither shows the pickers. Unknown slugs are still removed before the empty-club sentence, when the player list loaded.
+
+Page title is `Bezpośrednio` with zero or one player. With two: `Bezpośrednio: {A} — {B}`.
+
+Played games are only `white_win`, `black_win`, and `draw`. Byes, forfeits, and unplayed pairings are ignored.
+
+**Ogólnie**, **{A} białymi**, and **{B} białymi** each show `Wygrane {name}: N`, `Wygrane {name}: N`, and `Remisy: N`. Zeros stay visible. No percentages. In a White block, that player's wins are white wins and the opponent's wins are black wins. The two color blocks add up to Ogólnie.
+
+**Partie** lists those games, newest `held_on` first. The same date is ordered by tournament name (Polish collation), then round ascending. Each item links the tournament name, then the date as `DD.MM.YYYY`, then White's name (link to the player), the score (`1 - 0`, `0 - 1`, or `½ - ½`), and Black's name (link to the player). The winner's name is bold. A draw bolds neither name. No games: the three blocks at zero and `Ci zawodnicy nie rozegrali jeszcze partii.` A failed game load keeps the pickers and shows `Nie udało się wczytać partii.`
 
 ### Upload a tournament
 
@@ -161,7 +185,7 @@ Chart UI is **out of scope** until a later decision. Do not add a chart library 
 | How the same person is recognized across tournaments | Decided for upload: first+last, case- and accent-insensitive. Schema still stores non-unique names. |
 | Statistics page catalog and layout | Decided. See [Statistics](#statistics). |
 | Player page | Decided. See [Browse stored tournaments](#browse-stored-tournaments). |
-| Head-to-head stats | Later. |
+| Head-to-head | Decided. See [Head-to-head](#head-to-head). |
 | Upload body format | Decided: TRF at `POST /api/upload-tournament-trf`. |
 | Charts | Later. |
 | Tie-break columns on the tournament page | Later. Values stay in `standings`. The page shows place, player, and points. |
