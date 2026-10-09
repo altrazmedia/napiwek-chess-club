@@ -7,5 +7,12 @@ export function formatWinRate(wins: number, played: number) {
   if (played === 0) {
     return "0,0% (0/0)";
   }
-  return `${percentFormat.format((wins / played) * 100)}% (${wins}/${played})`;
+  return `${formatWinRatePercent(wins, played)} (${wins}/${played})`;
+}
+
+export function formatWinRatePercent(wins: number, played: number) {
+  if (played === 0) {
+    return "0,0%";
+  }
+  return `${percentFormat.format((wins / played) * 100)}%`;
 }

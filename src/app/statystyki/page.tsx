@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { PageShell } from "@/components/page-shell";
+import { StatisticCard } from "@/components/statistic-card";
 import { loadStatsRows } from "@/lib/db/queries/stats";
-import { formatWinRate } from "@/lib/format-win-rate";
+import { formatWinRatePercent } from "@/lib/format-win-rate";
+import { routes } from "@/lib/routes";
 import {
   globalGameCounts,
   topByTournamentWins,
@@ -9,24 +12,52 @@ import {
   topByWins,
 } from "@/lib/stats/club";
 import type { PlayerRank, StatsRows, WinRateRank } from "@/lib/stats/types";
-import { PlayersStatisticsTable, type PlayersStatisticsRow } from "./players-statistics-table";
+
+type PlayersStatisticsRow = {
+  id: string;
+  slug: string;
+  name: string;
+  value: string;
+  ranking: number;
+};
 
 function countRows(players: PlayerRank[]): PlayersStatisticsRow[] {
-  return players.map((player) => ({
-    id: player.id,
-    slug: player.slug,
-    name: player.fullName,
-    value: String(player.value),
-  }));
+  return assignCompetitionRanks(players, (row, previous) => row.value === previous.value).map(
+    (player) => ({
+      id: player.id,
+      slug: player.slug,
+      name: player.fullName,
+      value: String(player.value),
+      ranking: player.ranking,
+    }),
+  );
 }
 
 function winRateRows(players: WinRateRank[]): PlayersStatisticsRow[] {
-  return players.map((player) => ({
+  return assignCompetitionRanks(
+    players,
+    (row, previous) => row.wins * previous.played === previous.wins * row.played,
+  ).map((player) => ({
     id: player.id,
     slug: player.slug,
     name: player.fullName,
-    value: formatWinRate(player.wins, player.played),
+    value: formatWinRatePercent(player.wins, player.played),
+    ranking: player.ranking,
   }));
+}
+
+function assignCompetitionRanks<T>(
+  rows: T[],
+  tiedWithPrevious: (row: T, previous: T) => boolean,
+): Array<T & { ranking: number }> {
+  let ranking = 0;
+  return rows.map((row, index) => {
+    const previous = rows[index - 1];
+    if (index === 0 || !previous || !tiedWithPrevious(row, previous)) {
+      ranking = index + 1;
+    }
+    return { ...row, ranking };
+  });
 }
 
 export default async function StatsPage() {
@@ -71,41 +102,41 @@ export default async function StatsPage() {
       </section>
       <Ranking
         title="Najwięcej turniejów"
-        valueHeader="Turnieje"
         rows={countRows(topByTournamentsPlayed(rows.players, rows.roster))}
       />
       <Ranking
         title="Najwięcej wygranych partii"
-        valueHeader="Wygrane"
         rows={countRows(topByWins(rows.players, rows.games))}
       />
       <Ranking
         title="Najlepszy procent wygranych"
-        valueHeader="Procent"
         rows={winRateRows(topByWinRate(rows.players, rows.games))}
       />
       <Ranking
         title="Najwięcej wygranych turniejów"
-        valueHeader="Wygrane turnieje"
         rows={countRows(topByTournamentWins(rows.players, rows.standings))}
       />
     </PageShell>
   );
 }
 
-function Ranking({
-  title,
-  valueHeader,
-  rows,
-}: {
-  title: string;
-  valueHeader: string;
-  rows: PlayersStatisticsRow[];
-}) {
+function Ranking({ title, rows }: { title: string; rows: PlayersStatisticsRow[] }) {
   return (
     <section className="mt-8">
       <h2 className="text-lg font-semibold">{title}</h2>
-      <PlayersStatisticsTable valueHeader={valueHeader} rows={rows} />
+      {rows.length === 0 ? (
+        <p className="mt-3">Brak zawodników.</p>
+      ) : (
+        <ul className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-3">
+          {rows.map((row) => (
+            <li key={row.id} className="h-full">
+              <Link href={routes.player(row.slug)} className="block h-full">
+                <StatisticCard title={row.name} description={row.value} ranking={row.ranking} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

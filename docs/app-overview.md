@@ -94,12 +94,12 @@ Played games are only `white_win`, `black_win`, and `draw`. Byes, forfeits, and 
 The page shows:
 
 - **Ogółem:** number of played games, white wins, black wins, and draws. Those three results add up to the game total. Zeros stay visible.
-- **Najwięcej turniejów** (top 5): roster rows in `tournament_players`. Column: Turnieje.
-- **Najwięcej wygranych partii** (top 5): played-game wins. Column: Wygrane.
-- **Najlepszy procent wygranych** (top 5): wins / played games, draws in the denominator, minimum 15 played games. Rank by the exact ratio. Display one decimal and the fraction, e.g. `60,0% (12/20)`. Column: Procent.
-- **Najwięcej wygranych turniejów** (top 5): official `standings.position = 1`. Column: Wygrane turnieje.
+- **Najwięcej turniejów** (top 5): roster rows in `tournament_players`.
+- **Najwięcej wygranych partii** (top 5): played-game wins.
+- **Najlepszy procent wygranych** (top 5): wins / played games, draws in the denominator, minimum 15 played games. Rank by the exact ratio. Display one decimal, e.g. `60,0%`.
+- **Najwięcej wygranych turniejów** (top 5): official `standings.position = 1`.
 
-Each player block is a table: player name (link to the player page) and the number for that stat. Players with 0 do not qualify. If fewer than 5 qualify, show fewer. If the 5th place is tied, show everyone with that value, so a table can have more than 5 rows. Within one value, order by last name, then first name. An empty ranking is the heading plus one sentence.
+Each player block is a grid of cards: one column below the `md` breakpoint and three equal columns from `md` up. A short last row stays left-aligned. Each card is one link to that player. It shows the full name, then the stat as a plain number or, for win rate, the percentage only. A large semi-transparent competition rank sits on the right as a watermark. Equal values share a place and the next place skips. Players with 0 do not qualify. If fewer than 5 qualify, show fewer. If the 5th place is tied, show everyone with that value, so a block can have more than 5 cards. Within one value, order by last name, then first name. An empty ranking is the heading plus one sentence.
 
 The player page is locked under [Browse stored tournaments](#browse-stored-tournaments). Head-to-head is locked under [Head-to-head](#head-to-head).
 
