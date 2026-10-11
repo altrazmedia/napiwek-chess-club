@@ -248,4 +248,4 @@ Not decided; do not silently fill them in:
 - Edit/delete APIs after upload
 - Test runner beyond ESLint
 
-**Locked with the upload route:** player identity on upload is first+last name, case- and accent-insensitive (see [app-overview.md](./app-overview.md)). The curl payload is TRF at `POST /api/upload-tournament-trf`. The `/upload` page can override that match, the new player's name, and the tournament name and date before save.
+**Locked with the upload route:** player identity on upload is first+last name, case- and accent-insensitive (see [app-overview.md](./app-overview.md)). The curl payload is TRF at `POST /api/upload-tournament-trf`. The `/upload` page can override that match, the new player's name, and the tournament name and date before save, and can store an optional Chess Manager URL. The TRF API leaves that URL null.

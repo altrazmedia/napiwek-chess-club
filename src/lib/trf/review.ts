@@ -25,9 +25,46 @@ export function isRealDate(value: string): boolean {
   );
 }
 
+export const chessManagerUrlError = "Podaj prawidłowy adres https na chessmanager.com.";
+
+/**
+ * Blank becomes null. A filled value must be https on chessmanager.com or
+ * www.chessmanager.com, with no credentials and no explicit port. The stored
+ * string is the trimmed input.
+ */
+export function normalizeChessManagerUrl(
+  value: string,
+): { ok: true; url: string | null } | { ok: false; error: string } {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return { ok: true, url: null };
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return { ok: false, error: chessManagerUrlError };
+  }
+
+  const authority = trimmed.slice(trimmed.indexOf("://") + 3).split(/[/?#]/, 1)[0] ?? "";
+  const host = parsed.hostname;
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.username !== "" ||
+    parsed.password !== "" ||
+    /:\d+$/.test(authority) ||
+    (host !== "chessmanager.com" && host !== "www.chessmanager.com")
+  ) {
+    return { ok: false, error: chessManagerUrlError };
+  }
+
+  return { ok: true, url: trimmed };
+}
+
 /**
  * Polish sentence when the review cannot be saved. Null when the choices are usable.
- * Does not check the upload token or whether the tournament date is already taken.
+ * Does not check the upload token, the Chess Manager URL, or whether the tournament date is already taken.
  */
 export function reviewValidationError(args: {
   name: string;

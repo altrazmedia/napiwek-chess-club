@@ -5,7 +5,11 @@ import { db } from "@/lib/db";
 import { games, players, standings, tournamentPlayers, tournaments } from "@/lib/db/schema";
 import type { ParsedTrf, ParsedTrfGame, ParsedTrfPlayer } from "@/lib/trf/parse";
 import { playerMatchKey } from "@/lib/trf/names";
-import { reviewValidationError, type PlayerResolution } from "@/lib/trf/review";
+import {
+  normalizeChessManagerUrl,
+  reviewValidationError,
+  type PlayerResolution,
+} from "@/lib/trf/review";
 import { playerSlugFromNames, tournamentSlugFromDate } from "@/lib/trf/slug";
 
 export class UploadConflictError extends Error {
@@ -119,6 +123,7 @@ export async function uploadReviewedTournament(input: {
   parsed: ParsedTrf;
   name: string;
   heldOn: string;
+  chessManagerUrl: string;
   resolutions: PlayerResolution[];
 }): Promise<UploadTournamentTrfResult> {
   return db.transaction(async (tx) => {
@@ -130,6 +135,11 @@ export async function uploadReviewedTournament(input: {
         slug: true,
       },
     });
+
+    const chessManager = normalizeChessManagerUrl(input.chessManagerUrl);
+    if (!chessManager.ok) {
+      throw new ReviewedUploadError(chessManager.error);
+    }
 
     const problem = reviewValidationError({
       name: input.name,
@@ -185,6 +195,7 @@ export async function uploadReviewedTournament(input: {
       name: input.name.trim(),
       heldOn: input.heldOn,
       slug,
+      chessManagerUrl: chessManager.url,
       players: input.parsed.players,
       games: input.parsed.games,
       startNumberToPlayerId,
@@ -200,6 +211,7 @@ async function persistTournament(
     name: string;
     heldOn: string;
     slug: string;
+    chessManagerUrl?: string | null;
     players: ParsedTrfPlayer[];
     games: ParsedTrfGame[];
     startNumberToPlayerId: Map<number, string>;
@@ -213,6 +225,7 @@ async function persistTournament(
       name: input.name,
       heldOn: input.heldOn,
       slug: input.slug,
+      chessManagerUrl: input.chessManagerUrl ?? null,
     })
     .returning({
       id: tournaments.id,

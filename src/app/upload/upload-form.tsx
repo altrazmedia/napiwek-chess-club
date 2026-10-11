@@ -8,7 +8,12 @@ import { formatPoints } from "@/lib/format-points";
 import { routes } from "@/lib/routes";
 import { playerMatchKey } from "@/lib/trf/names";
 import { parseTrf, TrfParseError, type ParsedTrf, type ParsedTrfGame } from "@/lib/trf/parse";
-import { reviewValidationError, type PlayerResolution, type ReviewPlayer } from "@/lib/trf/review";
+import {
+  normalizeChessManagerUrl,
+  reviewValidationError,
+  type PlayerResolution,
+  type ReviewPlayer,
+} from "@/lib/trf/review";
 import { saveUploadedTournament } from "./actions";
 
 type RowChoice =
@@ -28,6 +33,7 @@ type ReviewState = {
   trf: string;
   name: string;
   heldOn: string;
+  chessManagerUrl: string;
   rows: ReviewRow[];
   games: ParsedTrfGame[];
 };
@@ -91,14 +97,17 @@ export function UploadForm({ players }: { players: ReviewPlayer[] }) {
     }
 
     const resolutions = review.rows.map(toResolution);
+    const chessManager = normalizeChessManagerUrl(review.chessManagerUrl);
     const validationError =
+      (chessManager.ok ? null : chessManager.error) ??
       reviewValidationError({
         name: review.name,
         heldOn: review.heldOn,
         startNumbers: review.rows.map((row) => row.startNumber),
         resolutions,
         dbPlayers: players,
-      }) ?? (token.trim() ? null : "Podaj token.");
+      }) ??
+      (token.trim() ? null : "Podaj token.");
     if (validationError) {
       setError(validationError);
       return;
@@ -112,6 +121,7 @@ export function UploadForm({ players }: { players: ReviewPlayer[] }) {
         trf: review.trf,
         name: review.name,
         heldOn: review.heldOn,
+        chessManagerUrl: review.chessManagerUrl,
         players: resolutions,
       });
       if (!result.ok) {
@@ -180,6 +190,18 @@ export function UploadForm({ players }: { players: ReviewPlayer[] }) {
             />
             <p className="text-sm text-muted-foreground">Publiczny adres turnieju to ta data.</p>
           </div>
+          <label
+            className="flex flex-col gap-2 text-sm font-medium"
+            htmlFor="tournament-chess-manager"
+          >
+            Adres Chess Manager
+            <Input
+              id="tournament-chess-manager"
+              type="url"
+              value={review.chessManagerUrl}
+              onChange={(event) => setReview({ ...review, chessManagerUrl: event.target.value })}
+            />
+          </label>
         </div>
 
         <h2 className="mt-8 text-lg font-semibold">Zawodnicy</h2>
@@ -420,6 +442,7 @@ function buildReview(trf: string, parsed: ParsedTrf, players: ReviewPlayer[]): R
     trf,
     name: parsed.name,
     heldOn: parsed.heldOn,
+    chessManagerUrl: "",
     rows,
     games: parsed.games,
   };

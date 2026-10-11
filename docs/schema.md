@@ -64,6 +64,7 @@ erDiagram
     text name
     date held_on
     text slug UK
+    text chess_manager_url
   }
   tournament_players {
     uuid tournament_id PK
@@ -113,6 +114,7 @@ Delete behavior: deleting a tournament cascades to `tournament_players`, `standi
 | `name` | text not null | |
 | `held_on` | date not null | single calendar date; time range = this date in range |
 | `slug` | text not null unique | kebab-case check; public URL key |
+| `chess_manager_url` | text null | optional https URL on `chessmanager.com` or `www.chessmanager.com`; public pages do not show it yet |
 | `created_at` | timestamptz not null | default `now()` (upload time) |
 
 A weekend event still uses the start day.

@@ -28,6 +28,7 @@ const inputSchema = z.object({
   trf: z.string(),
   name: z.string(),
   heldOn: z.string(),
+  chessManagerUrl: z.string(),
   players: z.array(resolutionSchema),
 });
 
@@ -68,6 +69,7 @@ export async function saveUploadedTournament(
       parsed,
       name: parsedInput.data.name,
       heldOn: parsedInput.data.heldOn,
+      chessManagerUrl: parsedInput.data.chessManagerUrl,
       resolutions: parsedInput.data.players,
     });
     revalidatePath("/", "layout");

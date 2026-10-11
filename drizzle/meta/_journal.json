@@ -8,6 +8,13 @@
       "when": 1790244388554,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791761769436,
+      "tag": "0001_chess_manager_url",
+      "breakpoints": true
     }
   ]
 }

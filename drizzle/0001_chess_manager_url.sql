@@ -1,0 +1,1 @@
+ALTER TABLE "tournaments" ADD COLUMN "chess_manager_url" text;

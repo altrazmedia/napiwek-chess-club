@@ -47,6 +47,7 @@ export const tournaments = pgTable(
     name: text("name").notNull(),
     heldOn: date("held_on").notNull(),
     slug: text("slug").notNull().unique(),
+    chessManagerUrl: text("chess_manager_url"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
