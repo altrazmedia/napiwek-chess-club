@@ -1,28 +1,39 @@
 import { timingSafeEqual } from "node:crypto";
 
+export type UploadTokenFailure = "unconfigured" | "unauthorized";
+
+/**
+ * Returns null when `provided` matches `UPLOAD_TOKEN`.
+ * `unconfigured` means the env var is missing. `unauthorized` means the secret did not match.
+ */
+export function checkUploadToken(provided: string | null | undefined): UploadTokenFailure | null {
+  const expected = process.env.UPLOAD_TOKEN;
+  if (!expected) {
+    return "unconfigured";
+  }
+  if (!provided || !tokensEqual(provided, expected)) {
+    return "unauthorized";
+  }
+  return null;
+}
+
 /**
  * Returns null when the request is authorized.
  * Returns a 401 Response when the Bearer token is missing or invalid.
  */
 export function requireUploadToken(request: Request): Response | null {
-  const expected = process.env.UPLOAD_TOKEN;
-  if (!expected) {
+  const header = request.headers.get("authorization");
+  const provided = header?.startsWith("Bearer ") ? header.slice("Bearer ".length) : null;
+  const failure = checkUploadToken(provided);
+  if (failure === "unconfigured") {
     return new Response(JSON.stringify({ error: "Upload is not configured" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }
-
-  const header = request.headers.get("authorization");
-  if (!header?.startsWith("Bearer ")) {
+  if (failure === "unauthorized") {
     return unauthorized();
   }
-
-  const provided = header.slice("Bearer ".length);
-  if (!tokensEqual(provided, expected)) {
-    return unauthorized();
-  }
-
   return null;
 }
 

@@ -3,13 +3,22 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { games, players, standings, tournamentPlayers, tournaments } from "@/lib/db/schema";
-import type { ParsedTrf } from "@/lib/trf/parse";
+import type { ParsedTrf, ParsedTrfGame, ParsedTrfPlayer } from "@/lib/trf/parse";
 import { playerMatchKey } from "@/lib/trf/names";
+import { reviewValidationError, type PlayerResolution } from "@/lib/trf/review";
+import { playerSlugFromNames, tournamentSlugFromDate } from "@/lib/trf/slug";
 
 export class UploadConflictError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "UploadConflictError";
+  }
+}
+
+export class ReviewedUploadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ReviewedUploadError";
   }
 }
 
@@ -24,6 +33,8 @@ export type UploadTournamentTrfResult = {
   playersReused: number;
   gamesInserted: number;
 };
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function uploadTournamentTrf(parsed: ParsedTrf): Promise<UploadTournamentTrfResult> {
   return db.transaction(async (tx) => {
@@ -91,90 +102,194 @@ export async function uploadTournamentTrf(parsed: ParsedTrf): Promise<UploadTour
       playersCreated += 1;
     }
 
-    const [tournament] = await tx
-      .insert(tournaments)
-      .values({
-        name: parsed.name,
-        heldOn: parsed.heldOn,
-        slug: parsed.slug,
-      })
-      .returning({
-        id: tournaments.id,
-        slug: tournaments.slug,
-        heldOn: tournaments.heldOn,
-        name: tournaments.name,
-      });
+    return persistTournament(tx, {
+      name: parsed.name,
+      heldOn: parsed.heldOn,
+      slug: parsed.slug,
+      players: parsed.players,
+      games: parsed.games,
+      startNumberToPlayerId,
+      playersCreated,
+      playersReused,
+    });
+  });
+}
 
-    if (!tournament) {
-      throw new Error("Failed to insert tournament");
-    }
-
-    const rosterRows = parsed.players.map((p) => {
-      const playerId = startNumberToPlayerId.get(p.startNumber);
-      if (!playerId) {
-        throw new Error(`Missing player id for start number ${p.startNumber}`);
-      }
-      return { tournamentId: tournament.id, playerId };
+export async function uploadReviewedTournament(input: {
+  parsed: ParsedTrf;
+  name: string;
+  heldOn: string;
+  resolutions: PlayerResolution[];
+}): Promise<UploadTournamentTrfResult> {
+  return db.transaction(async (tx) => {
+    const allPlayers = await tx.query.players.findMany({
+      columns: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        slug: true,
+      },
     });
 
-    await tx.insert(tournamentPlayers).values(rosterRows);
+    const problem = reviewValidationError({
+      name: input.name,
+      heldOn: input.heldOn,
+      startNumbers: input.parsed.players.map((player) => player.startNumber),
+      resolutions: input.resolutions,
+      dbPlayers: allPlayers,
+    });
+    if (problem) {
+      throw new ReviewedUploadError(problem);
+    }
 
-    await tx.insert(standings).values(
-      parsed.players.map((p) => {
-        const playerId = startNumberToPlayerId.get(p.startNumber)!;
+    const slug = tournamentSlugFromDate(input.heldOn);
+    const existingTournament = await tx.query.tournaments.findFirst({
+      where: eq(tournaments.slug, slug),
+      columns: { id: true },
+    });
+    if (existingTournament) {
+      throw new ReviewedUploadError(`Turniej z datą ${input.heldOn} już istnieje.`);
+    }
+
+    let playersCreated = 0;
+    let playersReused = 0;
+    const startNumberToPlayerId = new Map<number, string>();
+
+    for (const resolution of input.resolutions) {
+      if (resolution.kind === "existing") {
+        startNumberToPlayerId.set(resolution.startNumber, resolution.playerId);
+        playersReused += 1;
+        continue;
+      }
+
+      const firstName = resolution.firstName.trim();
+      const lastName = resolution.lastName.trim();
+      const [inserted] = await tx
+        .insert(players)
+        .values({
+          firstName,
+          lastName,
+          slug: playerSlugFromNames(firstName, lastName),
+        })
+        .returning({ id: players.id });
+
+      if (!inserted) {
+        throw new Error(`Failed to insert player ${firstName} ${lastName}`);
+      }
+
+      startNumberToPlayerId.set(resolution.startNumber, inserted.id);
+      playersCreated += 1;
+    }
+
+    return persistTournament(tx, {
+      name: input.name.trim(),
+      heldOn: input.heldOn,
+      slug,
+      players: input.parsed.players,
+      games: input.parsed.games,
+      startNumberToPlayerId,
+      playersCreated,
+      playersReused,
+    });
+  });
+}
+
+async function persistTournament(
+  tx: Tx,
+  input: {
+    name: string;
+    heldOn: string;
+    slug: string;
+    players: ParsedTrfPlayer[];
+    games: ParsedTrfGame[];
+    startNumberToPlayerId: Map<number, string>;
+    playersCreated: number;
+    playersReused: number;
+  },
+): Promise<UploadTournamentTrfResult> {
+  const [tournament] = await tx
+    .insert(tournaments)
+    .values({
+      name: input.name,
+      heldOn: input.heldOn,
+      slug: input.slug,
+    })
+    .returning({
+      id: tournaments.id,
+      slug: tournaments.slug,
+      heldOn: tournaments.heldOn,
+      name: tournaments.name,
+    });
+
+  if (!tournament) {
+    throw new Error("Failed to insert tournament");
+  }
+
+  const rosterRows = input.players.map((player) => {
+    const playerId = input.startNumberToPlayerId.get(player.startNumber);
+    if (!playerId) {
+      throw new Error(`Missing player id for start number ${player.startNumber}`);
+    }
+    return { tournamentId: tournament.id, playerId };
+  });
+
+  await tx.insert(tournamentPlayers).values(rosterRows);
+
+  await tx.insert(standings).values(
+    input.players.map((player) => {
+      const playerId = input.startNumberToPlayerId.get(player.startNumber)!;
+      return {
+        tournamentId: tournament.id,
+        playerId,
+        position: player.position,
+        points: player.points,
+        buchholz: null,
+        buchholzCut1: null,
+        sonnebornBerger: null,
+      };
+    }),
+  );
+
+  if (input.games.length > 0) {
+    await tx.insert(games).values(
+      input.games.map((game) => {
+        const whitePlayerId =
+          game.whiteStartNumber === null
+            ? null
+            : (input.startNumberToPlayerId.get(game.whiteStartNumber) ?? null);
+        const blackPlayerId =
+          game.blackStartNumber === null
+            ? null
+            : (input.startNumberToPlayerId.get(game.blackStartNumber) ?? null);
+
+        if (game.result === "bye") {
+          if (whitePlayerId === null || blackPlayerId !== null) {
+            throw new Error(`Invalid bye seating in round ${game.round}`);
+          }
+        } else if (whitePlayerId === null || blackPlayerId === null) {
+          throw new Error(`Missing players for game in round ${game.round}`);
+        }
+
         return {
           tournamentId: tournament.id,
-          playerId,
-          position: p.position,
-          points: p.points,
-          buchholz: null,
-          buchholzCut1: null,
-          sonnebornBerger: null,
+          round: game.round,
+          whitePlayerId,
+          blackPlayerId,
+          result: game.result,
         };
       }),
     );
+  }
 
-    if (parsed.games.length > 0) {
-      await tx.insert(games).values(
-        parsed.games.map((g) => {
-          const whitePlayerId =
-            g.whiteStartNumber === null
-              ? null
-              : (startNumberToPlayerId.get(g.whiteStartNumber) ?? null);
-          const blackPlayerId =
-            g.blackStartNumber === null
-              ? null
-              : (startNumberToPlayerId.get(g.blackStartNumber) ?? null);
-
-          if (g.result === "bye") {
-            if (whitePlayerId === null || blackPlayerId !== null) {
-              throw new Error(`Invalid bye seating in round ${g.round}`);
-            }
-          } else if (whitePlayerId === null || blackPlayerId === null) {
-            throw new Error(`Missing players for game in round ${g.round}`);
-          }
-
-          return {
-            tournamentId: tournament.id,
-            round: g.round,
-            whitePlayerId,
-            blackPlayerId,
-            result: g.result,
-          };
-        }),
-      );
-    }
-
-    return {
-      tournament: {
-        id: tournament.id,
-        slug: tournament.slug,
-        heldOn: tournament.heldOn,
-        name: tournament.name,
-      },
-      playersCreated,
-      playersReused,
-      gamesInserted: parsed.games.length,
-    };
-  });
+  return {
+    tournament: {
+      id: tournament.id,
+      slug: tournament.slug,
+      heldOn: tournament.heldOn,
+      name: tournament.name,
+    },
+    playersCreated: input.playersCreated,
+    playersReused: input.playersReused,
+    gamesInserted: input.games.length,
+  };
 }
