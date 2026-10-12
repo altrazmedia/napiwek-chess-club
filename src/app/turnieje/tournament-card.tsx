@@ -13,7 +13,7 @@ export function TournamentCard({ tournament }: { tournament: TournamentListItem 
       <CardHeader className="gap-3 r bg-linear-to-r from-(--gradient-1) via-card via-50% to-card px-6 pt-6 pb-4">
         <CardTitle className="text-lg  font-semibold tracking-[-0.16px]">
           <h2>
-            <Link href={routes.tournament(tournament.slug)} className="hover:underline">
+            <Link href={routes.tournament(tournament.slug)} className="hover:text-primary transition-colors">
               {tournament.name}
             </Link>
           </h2>

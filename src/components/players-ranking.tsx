@@ -55,7 +55,7 @@ export function PlayersRanking({ rows }: { rows: PlayersRankingRow[] }) {
             </div>
             <Link
               href={routes.player(row.slug)}
-              className="min-w-0 truncate px-2 text-sm font-semibold hover:underline"
+              className="min-w-0 truncate px-2 text-sm font-semibold"
             >
               {row.name}
             </Link>
