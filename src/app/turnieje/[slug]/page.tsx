@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { PageShell } from "@/components/page-shell";
 import { getTournamentBySlug, type TournamentPageData } from "@/lib/db/queries/tournaments";
-import { formatHeldOn } from "@/lib/format-held-on";
 import { GamesTable } from "./games-table";
 import { StandingsTable } from "./standings-table";
+import { TournamentHeader } from "./tournament-header";
 
 export default async function TournamentPage({ params }: PageProps<"/turnieje/[slug]">) {
   const { slug } = await params;
@@ -22,8 +22,8 @@ export default async function TournamentPage({ params }: PageProps<"/turnieje/[s
   }
 
   return (
-    <PageShell title={tournament.name}>
-      <p className="mt-2 text-sm text-muted-foreground">{formatHeldOn(tournament.heldOn)}</p>
+    <PageShell>
+      <TournamentHeader name={tournament.name} heldOn={tournament.heldOn} />
       <section className="mt-8">
         <h2 className="text-lg font-semibold">Klasyfikacja</h2>
         {tournament.standings.length === 0 ? (
