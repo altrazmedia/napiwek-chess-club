@@ -1,6 +1,8 @@
 # App review
 
-This document is for implementers (including AI agents). It describes **what the product is**, **who it is for**, and **product-level decisions**. For languages, libraries, hosting, and architecture, see [tech-stack.md](./tech-stack.md). For tables, enums, and indexes, see [schema.md](./schema.md).
+This document is for implementers (including AI agents). It describes **what the product is**, **who it is for**, and **product-level decisions**: features and the rules that make them correct. For languages, libraries, hosting, and architecture, see [tech-stack.md](./tech-stack.md). For tables, enums, and indexes, see [schema.md](./schema.md).
+
+It does **not** lock page layout, visual design, component structure, or exact UI copy. Change those in the UI without updating this file. Update this file when a feature, a rule that changes results, or the scope changes.
 
 Do not invent requirements that are not in these docs. If something is listed as deferred, do not decide it in passing while implementing something else.
 
@@ -56,29 +58,27 @@ At this size, loading relevant rows and computing stats in the request is expect
 
 ### Browse stored tournaments
 
-Users should be able to look through the dataset in a simple UI: tournament list, a single tournament (players, games, official standings), and player-centric views.
+Users should be able to look through the dataset: a tournament list, a single tournament (players, games, official standings), and player-centric views.
 
-The tournament index (`/turnieje`) lists cards newest `held_on` first, with no pagination. Layout is one card per row below the `lg` breakpoint and three equal columns from `lg` up. A short last row stays left-aligned. Each card shows the tournament name (link to that tournament) and a calendar icon with the date as `DD.MM.YYYY`. Official places 1–3 that exist follow: a numbered place badge and the player name (link to the player), then points as `8.5 /9 pkt` (a dot, always one decimal, a small gap, then `/N pkt` with no space after the slash). `N` is the round count, `max(games.round)`, and stays visible when it is 0. The place-1 suffix uses the muted gold color; other suffixes use muted text. An empty podium omits that block and still shows the header and footer. The footer is a group icon and the roster count: `1 zawodnik`, otherwise `N zawodników` (including 0, 2–4, and 22). The Chess Manager URL is not shown on the card. Points elsewhere keep a Polish comma and drop a trailing zero (`4`, `4,5`). An empty list and a failed load each show one sentence under the heading.
+Keep UX **simple**. Prefer lists, tables, and filters over dashboards, widgets, or marketing pages. How those views are laid out is not locked here.
 
-The tournament page (`/turnieje/[slug]`) shows, from top to bottom, the tournament name, the date as `DD.MM.YYYY`, the standings, and the games. It does not show the Chess Manager URL. A missing slug is a 404. A failed load is one sentence.
+The tournament index (`/turnieje`) lists every tournament, newest `held_on` first, with no pagination. Each entry links to that tournament and shows the date, official places 1–3 that exist (player, points, and round count), and the roster count. The round count is `max(games.round)` and stays visible when it is 0. The Chess Manager URL is not shown. An empty list and a failed load are each an empty or error state.
 
-**Klasyfikacja** lists every player, ordered by official `position`. Columns: Miejsce, Zawodnik (link to the player), Punkty. Points use a Polish decimal comma and drop a trailing zero (`4`, `4,5`). Buchholz, Buchholz−1, and Sonneborn-Berger stay in the database and are not shown here yet. An empty table is the heading plus one sentence.
+The tournament page (`/turnieje/[slug]`) shows the tournament name, the date, the standings, and the games. It does not show the Chess Manager URL. A missing slug is a 404. A failed load is an error state.
 
-Games have no extra section heading. They are grouped under `Runda N`, rounds ascending. Inside a round, rows are ordered by the left-side player's last name, then first name (Polish collation). That player is White, or the only player on a bye. This is not the pairing-sheet order.
+**Standings** list every player, ordered by official `position`, with place, player (link), and points. Buchholz, Buchholz−1, and Sonneborn-Berger stay in the database and are not shown here yet. An empty standings list is an empty state.
 
-Each game is three columns: White's name on the left (right-aligned), the result centered, Black's name on the right (left-aligned). Names link to the player. The winner's name is bold. A draw bolds neither name. Played scores are `1 - 0`, `0 - 1`, and `½ - ½`. A forfeit uses that same score, with `walkower` in smaller text under it. A bye keeps the player on the left and centers `(bye)` in the result column; the name is not bold. `(bye)` is the one English label on this page. An unplayed game shows both names and `nie rozegrano` in the result column, with neither name bold. If there are no games, the page shows one sentence.
+Games are grouped by round, rounds ascending. Inside a round, rows are ordered by the left-side player's last name, then first name (Polish collation). That player is White, or the only player on a bye. This is not the pairing-sheet order. Names link to the player. The winner is indicated; a draw has no winner. Played results are a white win, a black win, or a draw. A forfeit uses that same score and is marked as a forfeit. A bye has one player and is marked as a bye (the English label `(bye)` is the exception to Polish-only copy). An unplayed game shows both players and is marked unplayed. If there are no games, the page says so.
 
-The players index (`/zawodnicy`) lists every player, with no pagination. Order is last name, then first name, then slug, A to Z, Polish collation. Layout is one card per row below the `md` breakpoint and three equal columns from `md` up. A short last row stays left-aligned. Each card is one link to that player. It shows the full name, then `Rozegrane turnieje: N` (roster rows in `tournament_players`) and `Rozegrane partie: N` (played games only: `white_win`, `black_win`, `draw`; the player is white or black). Zeros stay visible. A **Szukaj** field above the list filters as you type in the browser. The URL stays `/zawodnicy`. The match is a case-insensitive substring of the first name, the last name, or `first last`, with Polish case-folding and no accent folding. An empty club and a failed load each show one sentence under the heading, and no field. No matches keeps the field and shows one sentence under it.
+The players index (`/zawodnicy`) lists every player, with no pagination. Order is last name, then first name, then slug, A to Z, Polish collation. Each player links to their page and shows how many tournaments they entered (roster rows in `tournament_players`) and how many games they played (`white_win`, `black_win`, `draw` only; the player is white or black). Zeros stay visible. A search field above the list filters as you type in the browser. The URL stays `/zawodnicy`. The match is a case-insensitive substring of the first name, the last name, or `first last`, with Polish case-folding and no accent folding. An empty club and a failed load each show an empty or error state and no search field. No matches keeps the field and shows an empty state.
 
-The player page (`/zawodnicy/[slug]`) shows the full name, then **Statystyki partii**, **Rozegrane turnieje**, and **Najczęstsi przeciwnicy**. A missing slug is a 404. A failed player lookup is one sentence under the title `Zawodnik`. Each block loads on its own. A failed block is one sentence in that block. The page shows all tournaments (no date controls). The stats functions still take an optional inclusive date range on `held_on`, and both the roster gate and the game counts use that range. The page is plain text until charts are in scope.
+The player page (`/zawodnicy/[slug]`) shows the full name, game stats, tournaments played, and frequent opponents. A missing slug is a 404. A failed player lookup is an error state. Each block loads on its own; a failed block is an error in that block only. The page shows all tournaments (no date controls). The stats functions still take an optional inclusive date range on `held_on`, and both the roster gate and the game counts use that range. Charts are out of scope.
 
-**Statystyki partii** has Ogólnie, Białymi, and Czarnymi. Played games are only `white_win`, `black_win`, and `draw`. Byes, forfeits, and unplayed pairings are ignored. A win is the player's own color winning; the other color's win is a loss. Each block shows Rozegrane, Zwycięstwa, Remisy, and Porażki. Zeros stay visible, including a color with no games. A result line is the count and the same win-rate form as the statistics page: one decimal, a Polish comma, and the fraction, e.g. `Zwycięstwa: 12 (60,0% (12/20))`. Zero played games in that block read `0 (0,0% (0/0))`. Each percentage is rounded on its own.
+**Game stats** cover all games, games as White, and games as Black. Played games are only `white_win`, `black_win`, and `draw`. Byes, forfeits, and unplayed pairings are ignored. A win is the player's own color winning; the other color's win is a loss. Each block shows games played, wins, draws, and losses. Zeros stay visible, including a color with no games. Each result that has a rate shows the count and the win rate: wins divided by played games in that block, one decimal, each percentage rounded on its own. Zero played games in that block is 0%.
 
-**Rozegrane turnieje** is the roster count in `tournament_players`, including a tournament with no played games. **Zwycięstwa w turniejach** is official `standings.position = 1`. **Podium w turniejach** is official `position` 1–3, so a win is also a podium. Then every tournament, newest `held_on` first. Each row links the tournament name, then the date as `DD.MM.YYYY`, the place, and points: `{name} — {date} — {position}. miejsce, {points} pkt`. Points use a Polish decimal comma and drop a trailing zero (`4`, `4,5`). No tournaments: both counts are 0 and one sentence replaces the list.
+**Tournaments played** counts roster rows in `tournament_players`, including a tournament with no played games. **Tournament wins** are official `standings.position = 1`. **Podiums** are official `position` 1–3, so a win is also a podium. Then every tournament, newest `held_on` first, with the date, place, and points. No tournaments: both counts are 0 and the list is an empty state.
 
-**Najczęstsi przeciwnicy** is omitted when the player has fewer than 3 roster tournaments. Otherwise opponents are ranked by played games together. Each row links the opponent's name and shows the game count with Polish pluralization (`1 partia`, `2 partie`, `5 partii`, `22 partie`). If several opponents share the 3rd-place count, show all of them. If fewer than 3 qualify, show those. Within one count, order by last name, then first name, Polish collation. Three or more tournaments but no played opponents: the heading plus one sentence.
-
-Keep UX **simple**. Prefer lists, tables, and filters over dashboards, widgets, or marketing layout.
+**Frequent opponents** are omitted when the player has fewer than 3 roster tournaments. Otherwise opponents are ranked by played games together. If several opponents share the 3rd-place count, show all of them. If fewer than 3 qualify, show those. Within one count, order by last name, then first name, Polish collation. Three or more tournaments but no played opponents: an empty state under the heading.
 
 ### Statistics
 
@@ -87,19 +87,19 @@ Stats are a core part of the product, not a later add-on. They must support:
 - **all tournaments**, or
 - a **specific time range** (filter by tournament date)
 
-The **statistics page** (`/statystyki`) is locked. It shows all tournaments (no date controls on the page). Stats functions still take an optional inclusive date range on `held_on` so a filter can be added later without rewriting the math.
+The **statistics page** (`/statystyki`) shows all tournaments (no date controls on the page). Stats functions still take an optional inclusive date range on `held_on` so a filter can be added later without rewriting the math.
 
 Played games are only `white_win`, `black_win`, and `draw`. Byes, forfeits, and unplayed pairings are ignored in every game count, win, and win percentage.
 
 The page shows:
 
-- **Ogółem:** number of played games, white wins, black wins, and draws. Those three results add up to the game total. Zeros stay visible.
-- **Najwięcej turniejów** (top 5): roster rows in `tournament_players`.
-- **Najwięcej wygranych partii** (top 5): played-game wins.
-- **Najlepszy procent wygranych** (top 5): wins / played games, draws in the denominator, minimum 15 played games. Rank by the exact ratio. Display one decimal, e.g. `60,0%`.
-- **Najwięcej wygranych turniejów** (top 5): official `standings.position = 1`.
+- **Overall:** number of played games, white wins, black wins, and draws. Those three results add up to the game total. Zeros stay visible.
+- **Most tournaments** (top 5): roster rows in `tournament_players`.
+- **Most won games** (top 5): played-game wins.
+- **Best win percentage** (top 5): wins / played games, draws in the denominator, minimum 15 played games. Rank by the exact ratio. Display one decimal.
+- **Most tournament wins** (top 5): official `standings.position = 1`.
 
-Each player block is a grid of cards: one column below the `md` breakpoint and three equal columns from `md` up. A short last row stays left-aligned. Each card is one link to that player. It shows the full name, then the stat as a plain number or, for win rate, the percentage only. A large semi-transparent competition rank sits on the right as a watermark. Equal values share a place and the next place skips. Players with 0 do not qualify. If fewer than 5 qualify, show fewer. If the 5th place is tied, show everyone with that value, so a block can have more than 5 cards. Within one value, order by last name, then first name. An empty ranking is the heading plus one sentence.
+Each ranked player links to that player and shows the stat (for win rate, the percentage only). Equal values share a place and the next place skips. Players with 0 do not qualify. If fewer than 5 qualify, show fewer. If the 5th place is tied, show everyone with that value, so a block can have more than 5 players. Within one value, order by last name, then first name. An empty ranking is an empty state under its heading.
 
 The player page is locked under [Browse stored tournaments](#browse-stored-tournaments). Head-to-head is locked under [Head-to-head](#head-to-head).
 
@@ -111,23 +111,23 @@ The head-to-head page (`/head-to-head`, `/head-to-head/[slug]`, `/head-to-head/[
 
 Slugs are resolved in order. A slug with no player is dropped. A second slug that repeats the first is dropped. If the cleaned path differs from the request, the page redirects to it. `/missing/jan` and `/jan/jan` both become `/head-to-head/jan`. Two unknown slugs become `/head-to-head`. One remaining slug fills the first picker and leaves the second empty. Totals and the game list appear only when two different players are in the URL.
 
-`/a/b` and `/b/a` load the same games. The first slug is the left player in the summary. Submit keeps the order of the two pickers. The game list does not swap: White is always on the left.
+`/a/b` and `/b/a` load the same games. The first slug is the left player in the summary. Submit keeps the order of the two pickers. The game list does not swap sides: White is always the white player.
 
 The page shows all tournaments (no date controls). The query and the aggregate function still take an optional inclusive date range on `held_on`.
 
-Two comboboxes list every player, ordered by last name, then first name, then slug, Polish collation. Labels are `Pierwszy zawodnik` and `Drugi zawodnik`. Each closed value shows the full name. Placeholder: `Wybierz zawodnika`. Each filters on its own in the browser. The match is a case-insensitive substring of the first name, the last name, or `first last`, with Polish case-folding and no accent folding. The URL does not change while typing. No matches: `Brak zawodników o tym imieniu lub nazwisku.` The second list omits whoever is selected in the first. If the first selection becomes the player in the second, the second selection clears.
+Two pickers list every player, ordered by last name, then first name, then slug, Polish collation. Each filters on its own in the browser. The match is a case-insensitive substring of the first name, the last name, or `first last`, with Polish case-folding and no accent folding. The URL does not change while typing. The second list omits whoever is selected in the first. If the first selection becomes the player in the second, the second selection clears.
 
-**Pokaż** is disabled until two different players are selected. It navigates to `/head-to-head/{first}/{second}` in that order.
+Submit stays unavailable until two different players are selected. It navigates to `/head-to-head/{first}/{second}` in that order.
 
-An empty club shows `Nie ma jeszcze zawodników.` A failed player load shows `Nie udało się wczytać zawodników.` Neither shows the pickers. Unknown slugs are still removed before the empty-club sentence, when the player list loaded.
+An empty club and a failed player load are each an empty or error state with no pickers. Unknown slugs are still removed before the empty-club state, when the player list loaded.
 
-Page title is `Bezpośrednio` with zero or one player. With two: `Bezpośrednio: {A} — {B}`.
+The page title names neither player, one player, or both, matching how many distinct players are selected.
 
 Played games are only `white_win`, `black_win`, and `draw`. Byes, forfeits, and unplayed pairings are ignored.
 
-**Ogólnie**, **{A} białymi**, and **{B} białymi** each show `Wygrane {name}: N`, `Wygrane {name}: N`, and `Remisy: N`. Zeros stay visible. No percentages. In a White block, that player's wins are white wins and the opponent's wins are black wins. The two color blocks add up to Ogólnie.
+**Overall**, **first player as White**, and **second player as White** each show both players' wins and the draws. Zeros stay visible. No percentages. In a White block, that player's wins are white wins and the opponent's wins are black wins. The two color blocks add up to overall.
 
-**Partie** lists those games, newest `held_on` first. The same date is ordered by tournament name (Polish collation), then round ascending. Each item links the tournament name, then the date as `DD.MM.YYYY`, then White's name (link to the player), the score (`1 - 0`, `0 - 1`, or `½ - ½`), and Black's name (link to the player). The winner's name is bold. A draw bolds neither name. No games: the three blocks at zero and `Ci zawodnicy nie rozegrali jeszcze partii.` A failed game load keeps the pickers and shows `Nie udało się wczytać partii.`
+**Games** lists those games, newest `held_on` first. The same date is ordered by tournament name (Polish collation), then round ascending. Each item links the tournament, shows the date, and shows White, the score, and Black, with White and Black linking to those players. The winner is indicated; a draw has no winner. No games: the three blocks at zero and an empty state. A failed game load keeps the pickers and shows an error.
 
 ### Upload a tournament
 
@@ -135,16 +135,16 @@ There is an **HTTP API** and one unlinked page. `/upload` is the only operator U
 
 **API (locked):** FIDE-style **TRF** text, posted as the raw body to `POST /api/upload-tournament-trf` with a Bearer token. The handler creates the tournament, roster, games, and official standings (place + points; tie-breaks null when absent from TRF). Player matching on this route is automatic. Do not add another write route.
 
-**Page (locked):** `/upload`. A failed player-list load is one sentence and no form. An empty club still shows the form.
+**Page (locked):** `/upload`. A failed player-list load is an error and no form. An empty club still shows the form.
 
-1. Empty state: one button, `Wybierz plik TRF`. The browser reads the file and parses it with the same TRF parser as the API. A bad file shows one Polish sentence and stays empty.
-2. Review: editable **Nazwa** and **Data** (`input type="date"`), prefilled from the file. One hint says the public address is that date. Optional **Adres Chess Manager** (`input type="url"`) starts empty. A blank value is stored as null. A non-blank value must be an `https` URL on `chessmanager.com` or `www.chessmanager.com`, with no username, password, or explicit port. Any path, query, or fragment is kept as typed. Anything else blocks save with `Podaj prawidłowy adres https na chessmanager.com.` Players are ordered by official place. Each row shows place, points, and the name from the file, plus **Znaleziono w bazie** or **Nie znaleziono w bazie** from the initial name match. That status line does not change if the operator overrides the row. Every row has a select: **Nowy zawodnik** plus every database player (last name, then first name). A match defaults to that player. A miss defaults to **Nowy zawodnik**, with editable **Imię** and **Nazwisko** prefilled from the file. Choosing an existing player does not rename them. Choosing **Nowy zawodnik** again prefills the file name. Games are read-only, grouped as `Runda N` in parsed order (not re-sorted by last name). Result labels match the tournament page: `1 - 0`, `0 - 1`, `½ - ½`, `walkower`, `(bye)`, `nie rozegrano`. Names in the games follow the current choice. **Token** is a password field and is not stored. **Zapisz** and **Anuluj**. Anuluj returns to the file button and clears the token.
-3. Success: clear the form and the token, show `Zapisano turniej.` and a link to `/turnieje/{slug}`. Choosing another file removes that message.
-4. Errors: one sentence. A save error keeps the review data and the token.
+1. The operator picks a TRF file. The browser reads it and parses it with the same TRF parser as the API. A bad file shows an error and stays on this step.
+2. Review: editable name and date, prefilled from the file. The public address is that date. Optional Chess Manager URL, stored as null when blank. A non-blank value must be an `https` URL on `chessmanager.com` or `www.chessmanager.com`, with no username, password, or explicit port. Any path, query, or fragment is kept as typed. Anything else blocks save. Players are ordered by official place. Each row shows place, points, the name from the file, and whether the initial name match found a database player. That match status does not change if the operator overrides the row. Every row can stay a new player or be attached to an existing one (players listed by last name, then first name). A match defaults to that player. A miss defaults to a new player, with editable first and last name prefilled from the file. Choosing an existing player does not rename them. Choosing a new player again prefills the file name. Games are read-only, in parsed round order (not re-sorted by last name), and use the same result kinds as the tournament page. Names in the games follow the current choice. The token is entered for this save and is not stored. Cancel returns to the file step and clears the token.
+3. Success: clear the form and the token, and link to `/turnieje/{slug}`. Choosing another file clears that success state.
+4. Errors: one message. A save error keeps the review data and the token.
 
 Save is a server action. It checks the token, re-parses the TRF, and writes places, points, and games from the file. The operator's name, date, player choices, and optional Chess Manager URL override only identity, the tournament title/date, and that URL. The TRF API leaves the URL null. Block save when the name, date, token, or a new player's first or last name is empty; the Chess Manager field is not a valid https URL on chessmanager.com; two rows use the same existing player; a new name matches an existing player; or a new player's slug would collide with another new player or an existing one.
 
-**Player identity on upload (locked):** match existing players by **first name + last name**, case-insensitive and accent-insensitive. TRF names are `"Lastname, Firstname"` or `"Firstname Lastname"`. The API attaches that match automatically. The page uses the same match to prefill each row, then saves the operator's choice: an existing player id, or a new first and last name. A new name that matches an existing player is rejected; the operator must pick that player. New players get slug `firstname-lastname` (ASCII-folded kebab). Tournament slug is the start date `YYYY-MM-DD` (API: TRF `042`; page: the edited date). Re-upload of the same date slug is rejected (`409` on the API; one Polish sentence on the page).
+**Player identity on upload (locked):** match existing players by **first name + last name**, case-insensitive and accent-insensitive. TRF names are `"Lastname, Firstname"` or `"Firstname Lastname"`. The API attaches that match automatically. The page uses the same match to prefill each row, then saves the operator's choice: an existing player id, or a new first and last name. A new name that matches an existing player is rejected; the operator must pick that player. New players get slug `firstname-lastname` (ASCII-folded kebab). Tournament slug is the start date `YYYY-MM-DD` (API: TRF `042`; page: the edited date). Re-upload of the same date slug is rejected (`409` on the API; an error on the page).
 
 ## Important product decisions
 
@@ -192,13 +192,13 @@ Chart UI is **out of scope** until a later decision. Do not add a chart library 
 | --- | --- |
 | Postgres schema | Decided. See [schema.md](./schema.md). |
 | How the same person is recognized across tournaments | Decided for upload: first+last, case- and accent-insensitive. Schema still stores non-unique names. |
-| Statistics page catalog and layout | Decided. See [Statistics](#statistics). |
+| Statistics page catalog | Decided. See [Statistics](#statistics). |
 | Player page | Decided. See [Browse stored tournaments](#browse-stored-tournaments). |
 | Head-to-head | Decided. See [Head-to-head](#head-to-head). |
 | Upload body format | Decided: TRF at `POST /api/upload-tournament-trf`. The hidden `/upload` page reviews that file, then saves through a server action. |
 | Charts | Later. |
-| Tie-break columns on the tournament page | Later. Values stay in `standings`. The page shows place, player, and points. |
-| Chess Manager URL on public pages | Later. The value stays in `tournaments.chess_manager_url`. The index and the tournament page do not show it. |
+| Tie-breaks on the tournament page | Later. Values stay in `standings`. The page shows place, player, and points. |
+| Chess Manager URL on public pages | Later. The value stays in `tournaments.chess_manager_url`. Public tournament views do not show it. |
 | Edit/delete tournament after upload | Not decided. Do not build unless asked. |
 | Custom domain, SEO program, PWA | Not decided; not required for v1. |
 
