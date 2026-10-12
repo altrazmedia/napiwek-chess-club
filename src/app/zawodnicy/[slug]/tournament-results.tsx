@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { listPlayerTournaments, type PlayerTournamentRow } from "@/lib/db/queries/players";
 import { formatHeldOn } from "@/lib/format-held-on";
-import { formatPoints } from "@/lib/format-points";
+import { formatPoints, formatPointsShare } from "@/lib/format-points";
 import { routes } from "@/lib/routes";
 import { playerTournamentSummary } from "@/lib/stats/player";
 
@@ -36,7 +36,10 @@ export async function TournamentResults({ playerId }: { playerId: string }) {
               {" — "}
               {formatHeldOn(tournament.heldOn)}
               {" — "}
-              {tournament.position}. miejsce, {formatPoints(tournament.points)} pkt
+              {tournament.position}. miejsce, {formatPoints(tournament.points)}/{tournament.rounds}
+              {" pkt ("}
+              {formatPointsShare(tournament.points, tournament.rounds)}
+              {")"}
             </li>
           ))}
         </ul>

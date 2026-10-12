@@ -121,7 +121,7 @@ Browse pages are Server Components. Filters (time range, player ids) belong in t
 
 ### Why Tailwind + shadcn (not MUI, not CSS-only)
 
-The UI is tables, selects, inputs, maybe a dialog (player picker). shadcn copies components into the repo (no heavy runtime kit). Keep styling boring. Do not install a second component library. Do not add a chart package until charts are in scope.
+The UI is tables, selects, inputs, maybe a dialog (player picker). shadcn copies components into the repo (no heavy runtime kit). Keep styling boring. Do not install a second component library. Do not add a chart package. The player points-share chart is hand-drawn SVG and HTML.
 
 shadcn primitives (Radix or whatever the current shadcn default is) come along with the components we add. Add **only** components we use (table, select, input, button, dialog, etc.).
 
@@ -155,7 +155,7 @@ Do not add these unless a later written decision says so:
 | Prisma, second ORM | Drizzle only. |
 | `@neondatabase/serverless` as default | Use `pg` + Fluid pool unless we are forced onto Edge. |
 | TanStack Query / SWR | RSC + URL params. |
-| Chart library (Recharts, etc.) | Charts out of scope. |
+| Chart library (Recharts, etc.) | The player points-share chart is hand-drawn SVG and HTML. No chart package. |
 | Playwright/Vitest as a requirement for v1 | ESLint from `create-next-app` is enough; tests optional later. |
 | Monorepo / separate API package | One Next.js app. |
 | Edge runtime for DB routes | Conflicts with chosen `pg` pooling. |
@@ -235,7 +235,7 @@ Never commit secrets. Never log the token.
 2. **Do not invent a second DB schema.** Implement Drizzle from [schema.md](./schema.md) in a dedicated change; Drizzle is the only mapper.
 3. **Upload contract is TRF** at `POST /api/upload-tournament-trf` (raw text body, automatic matching). Keep the route token-protected. `/upload` saves a reviewed TRF through the server action, with the same secret.
 4. **Do not pick a final stats catalog** unless that task is in scope. Put new metrics in `src/lib/stats` as functions over games/standings.
-5. **Do not add charts** while building tables.
+5. **Do not add a chart library.** The only chart is the player points-share chart.
 6. **Keep UX simple:** lists, tables, filters. Polish copy.
 7. **Compute stats in the request** from raw data; official tournament standings are displayed as stored.
 8. **Node runtime** for anything that talks to Postgres.
@@ -245,7 +245,7 @@ Never commit secrets. Never log the token.
 
 Not decided; do not silently fill them in:
 
-- Chart library and chart UI
+- Further charts beyond the player points-share chart
 - Edit/delete APIs after upload
 - Test runner beyond ESLint
 

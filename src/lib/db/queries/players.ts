@@ -1,4 +1,4 @@
-import { and, count, eq, inArray, sql } from "drizzle-orm";
+import { and, count, eq, inArray, max, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/lib/db";
 import { games, players, standings, tournamentPlayers, tournaments } from "@/lib/db/schema";
@@ -96,6 +96,7 @@ export type PlayerTournamentRow = {
   heldOn: string;
   position: number;
   points: string;
+  rounds: number;
 };
 
 export async function getPlayerBySlug(slug: string): Promise<PlayerIdentity | null> {
@@ -122,13 +123,23 @@ export async function listPlayerGames(playerId: string): Promise<PlayerGameRow[]
 }
 
 export async function listPlayerTournaments(playerId: string): Promise<PlayerTournamentRow[]> {
-  return db
+  const roundCounts = db
+    .select({
+      tournamentId: games.tournamentId,
+      rounds: max(games.round).as("rounds"),
+    })
+    .from(games)
+    .groupBy(games.tournamentId)
+    .as("round_counts");
+
+  const rows = await db
     .select({
       slug: tournaments.slug,
       name: tournaments.name,
       heldOn: tournaments.heldOn,
       position: standings.position,
       points: standings.points,
+      rounds: sql<number>`coalesce(${roundCounts.rounds}, 0)::int`,
     })
     .from(tournamentPlayers)
     .innerJoin(tournaments, eq(tournaments.id, tournamentPlayers.tournamentId))
@@ -139,7 +150,13 @@ export async function listPlayerTournaments(playerId: string): Promise<PlayerTou
         eq(standings.playerId, tournamentPlayers.playerId),
       ),
     )
+    .leftJoin(roundCounts, eq(tournaments.id, roundCounts.tournamentId))
     .where(eq(tournamentPlayers.playerId, playerId));
+
+  return rows.map((row) => ({
+    ...row,
+    rounds: Number(row.rounds),
+  }));
 }
 
 async function listGamesForColor(

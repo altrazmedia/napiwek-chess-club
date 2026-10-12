@@ -74,11 +74,13 @@ Games are grouped by round. The page shows one round at a time. Round buttons ru
 
 The players index (`/zawodnicy`) lists every player, with no pagination. Order is last name, then first name, then slug, A to Z, Polish collation. Each player links to their page and shows how many tournaments they entered (roster rows in `tournament_players`) and how many games they played (`white_win`, `black_win`, `draw` only; the player is white or black). Zeros stay visible. A search field above the list filters as you type in the browser. The URL stays `/zawodnicy`. The match is a case-insensitive substring of the first name, the last name, or `first last`, with Polish case-folding and no accent folding. An empty club and a failed load each show an empty or error state and no search field. No matches keeps the field and shows an empty state.
 
-The player page (`/zawodnicy/[slug]`) shows the full name, game stats, tournaments played, and frequent opponents. A missing slug is a 404. A failed player lookup is an error state. Each block loads on its own; a failed block is an error in that block only. The page shows all tournaments (no date controls). The stats functions still take an optional inclusive date range on `held_on`, and both the roster gate and the game counts use that range. Charts are out of scope.
+The player page (`/zawodnicy/[slug]`) shows the full name, game stats, the points-share chart, tournaments played, and frequent opponents. A missing slug is a 404. A failed player lookup is an error state. Each block loads on its own; a failed block is an error in that block only. The page shows all tournaments (no date controls). The stats functions still take an optional inclusive date range on `held_on`, and the roster gate, the points-share chart, and the game counts use that range.
 
 **Game stats** cover all games, games as White, and games as Black. Played games are only `white_win`, `black_win`, and `draw`. Byes, forfeits, and unplayed pairings are ignored. A win is the player's own color winning; the other color's win is a loss. Each block shows games played, wins, draws, and losses. Zeros stay visible, including a color with no games. Each result that has a rate shows the count and the win rate: wins divided by played games in that block, one decimal, each percentage rounded on its own. Zero played games in that block is 0%.
 
-**Tournaments played** counts roster rows in `tournament_players`, including a tournament with no played games. **Tournament wins** are official `standings.position = 1`. **Podiums** are official `position` 1–3, so a win is also a podium. Then every tournament, newest `held_on` first, with the date, place, and points. No tournaments: both counts are 0 and the list is an empty state.
+**Tournaments played** counts roster rows in `tournament_players`, including a tournament with no played games. **Tournament wins** are official `standings.position = 1`. **Podiums** are official `position` 1–3, so a win is also a podium. Then every tournament, newest `held_on` first, with the date, place, points, the round count as the maximum points, and the player's share of those points. The round count is `max(games.round)` and is 0 when the tournament has no games. The share is official points divided by that count: one decimal, Polish decimal comma, each tournament rounded on its own. Zero rounds is `0,0%`. No tournaments: both counts are 0 and the list is an empty state.
+
+**Points share** is a line chart, omitted when the player has fewer than 3 roster tournaments. A tournament with no games still counts and is drawn at 0%. A failed load shows the heading and an error. Otherwise every roster tournament in the range is a point, oldest `held_on` first, then slug. The horizontal axis is that date only, `DD.MM.YYYY`, and every date is labeled. When the dates do not fit, the plot scrolls horizontally and the vertical-axis labels stay fixed. The vertical axis is always 0–100%, with guides at 0, 25, 50, 75, and 100. The share is the same as in the tournament list. The point uses the exact ratio. The visible percentage is one decimal, Polish decimal comma, each tournament rounded on its own. Zero rounds is `0,0%`. Each point links to that tournament. Hover and keyboard focus show the tournament name and that percentage.
 
 **Frequent opponents** are omitted when the player has fewer than 3 roster tournaments. Otherwise opponents are ranked by played games together. If several opponents share the 3rd-place count, show all of them. If fewer than 3 qualify, show those. Within one count, order by last name, then first name, Polish collation. Three or more tournaments but no played opponents: an empty state under the heading.
 
@@ -186,7 +188,7 @@ All-time vs date-bounded views are part of the idea, not a nice-to-have. Impleme
 
 ### Charts
 
-Chart UI is **out of scope** until a later decision. Do not add a chart library or dashboard charts while building browse/stats tables.
+The player-page points-share chart is in scope. See [Browse stored tournaments](#browse-stored-tournaments). Do not add a chart library. Other charts stay deferred.
 
 ## Out of scope / deferred (do not decide silently)
 
@@ -198,7 +200,7 @@ Chart UI is **out of scope** until a later decision. Do not add a chart library 
 | Player page | Decided. See [Browse stored tournaments](#browse-stored-tournaments). |
 | Head-to-head | Decided. See [Head-to-head](#head-to-head). |
 | Upload body format | Decided: TRF at `POST /api/upload-tournament-trf`. The hidden `/upload` page reviews that file, then saves through a server action. |
-| Charts | Later. |
+| Charts | The player points-share chart is decided. Other charts are later. Do not add a chart library. |
 | Tie-breaks on the tournament page | Later. Values stay in `standings`. The page shows place, player, and points. |
 | Chess Manager URL on public pages | Later. The value stays in `tournaments.chess_manager_url`. Public tournament views do not show it. |
 | Edit/delete tournament after upload | Not decided. Do not build unless asked. |

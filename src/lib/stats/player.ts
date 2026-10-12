@@ -1,6 +1,7 @@
 import type { DateRange, StatsGameResult } from "./types";
 
 const OPPONENT_LIMIT = 3;
+const POINTS_SHARE_MIN_TOURNAMENTS = 3;
 
 const playedResults = new Set<StatsGameResult>(["white_win", "black_win", "draw"]);
 
@@ -22,6 +23,7 @@ export type PlayerTournament = {
   heldOn: string;
   position: number;
   points: string;
+  rounds: number;
 };
 
 export type ColorRecord = {
@@ -41,6 +43,15 @@ export type PlayerTournamentSummary = {
   wins: number;
   podiums: number;
   tournaments: PlayerTournament[];
+};
+
+export type PlayerPointsSharePoint = {
+  slug: string;
+  name: string;
+  heldOn: string;
+  points: string;
+  rounds: number;
+  share: number;
 };
 
 export type FrequentOpponent = {
@@ -126,6 +137,28 @@ export function playerTournamentSummary(
   }
 
   return { wins, podiums, tournaments: inWindow };
+}
+
+export function playerPointsShare(
+  tournaments: PlayerTournament[],
+  range?: DateRange,
+): PlayerPointsSharePoint[] | null {
+  const inWindow = tournaments
+    .filter((tournament) => inRange(tournament.heldOn, range))
+    .sort((a, b) => a.heldOn.localeCompare(b.heldOn) || a.slug.localeCompare(b.slug, "pl"));
+
+  if (inWindow.length < POINTS_SHARE_MIN_TOURNAMENTS) {
+    return null;
+  }
+
+  return inWindow.map((tournament) => ({
+    slug: tournament.slug,
+    name: tournament.name,
+    heldOn: tournament.heldOn,
+    points: tournament.points,
+    rounds: tournament.rounds,
+    share: tournament.rounds === 0 ? 0 : (Number(tournament.points) / tournament.rounds) * 100,
+  }));
 }
 
 export function frequentOpponents(

@@ -5,6 +5,7 @@ import { Spinner } from "@/components/spinner";
 import { getPlayerBySlug, type PlayerIdentity } from "@/lib/db/queries/players";
 import { FrequentOpponents } from "./frequent-opponents";
 import { GameStats } from "./game-stats";
+import { PointsShare } from "./points-share";
 import { TournamentResults } from "./tournament-results";
 
 export default async function PlayerPage({ params }: PageProps<"/zawodnicy/[slug]">) {
@@ -27,6 +28,9 @@ export default async function PlayerPage({ params }: PageProps<"/zawodnicy/[slug
     <PageShell title={`${player.firstName} ${player.lastName}`}>
       <Suspense fallback={<Spinner />}>
         <GameStats playerId={player.id} />
+      </Suspense>
+      <Suspense fallback={<Spinner />}>
+        <PointsShare playerId={player.id} />
       </Suspense>
       <Suspense fallback={<Spinner />}>
         <TournamentResults playerId={player.id} />
