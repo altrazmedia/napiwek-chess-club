@@ -23,7 +23,7 @@ const headerCellClassName =
   "h-auto bg-(--gradient-1)/70 px-4 py-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase";
 
 const rowClassName = {
-  1: "bg-(--gold-background) hover:bg-(--gold-background)",
+  1: "bg-(--gold-background) hover:bg-(--gold-background) ",
   2: "bg-(--silver-background) hover:bg-(--silver-background)",
   3: "bg-(--bronze-background) hover:bg-(--bronze-background)",
 } as const;
@@ -32,6 +32,12 @@ const badgeClassName = {
   1: "bg-(--gold) text-(--gold-foreground)",
   2: "bg-(--silver) text-(--silver-foreground)",
   3: "bg-(--bronze) text-(--bronze-foreground)",
+} as const;
+
+const textClassName = {
+  1: "text-(--gold-foreground)",
+  2: "text-(--silver-foreground)",
+  3: "text-(--bronze-foreground)",
 } as const;
 
 function medalPlace(position: number): 1 | 2 | 3 | null {
@@ -109,7 +115,7 @@ export function StandingsTable({ standings }: { standings: StandingRow[] }) {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className={cn("px-4 py-5", divided)}>
+                  <TableCell className={cn("px-4 py-5", divided, place ? textClassName[place] : "")}>
                     <Link
                       href={routes.player(standing.player.slug)}
                       className="text-sm font-medium hover:underline"

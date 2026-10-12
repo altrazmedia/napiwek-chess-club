@@ -14,8 +14,8 @@ export type PlayersRankingRow = {
 
 const rowClassName = {
   1: "bg-(--gold-background)/80 text-(--gold-foreground) shadow-[0_1px_2px_rgba(217,119,6,0.06)]",
-  2: "bg-(--silver-background) text-foreground",
-  3: "bg-(--bronze-background)/50 text-foreground",
+  2: "bg-(--silver-background) text-(--silver-foreground)",
+  3: "bg-(--bronze-background)/50 text-(--bronze-foreground)",
 } as const;
 
 const badgeClassName = {
@@ -106,7 +106,7 @@ function PodiumRanking({ rows }: { rows: PlayersRankingRow[] }) {
             </div>
             <Link
               href={routes.player(row.slug)}
-              className="min-w-0 truncate px-2 text-sm font-semibold"
+              className="min-w-0 truncate px-2 text-sm font-semibold "
             >
               {row.name}
             </Link>

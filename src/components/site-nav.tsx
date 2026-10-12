@@ -46,8 +46,9 @@ export function SiteNav() {
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex flex-col items-center gap-0.5 rounded-full py-0.5 text-[10px] leading-none tracking-tight whitespace-nowrap ${active ? "font-bold text-primary" : "font-medium text-foreground"
-                    }`}
+                  className={`flex flex-col items-center gap-0.5 rounded-full py-0.5 text-[10px] leading-none tracking-tight whitespace-nowrap ${
+                    active ? "font-bold text-primary" : "font-medium text-foreground"
+                  }`}
                 >
                   <Icon className="size-5 shrink-0" aria-hidden />
                   {item.label}
