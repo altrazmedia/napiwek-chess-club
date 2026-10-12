@@ -4,9 +4,9 @@ import { ChessPawn } from "lucide-react";
 import { cn } from "cn";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { GameCard, type GameCardPlayer } from "@/components/game-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TournamentGame, TournamentPlayer } from "@/lib/db/queries/tournaments";
 import { routes } from "@/lib/routes";
+import { TournamentSection } from "./tournament-section";
 
 const COMMIT_PX = 48;
 const DRAG_START_PX = 8;
@@ -36,13 +36,13 @@ type Motion =
   | { kind: "rest" }
   | { kind: "drag"; x: number; width: number; layout: AdjacentLayout }
   | {
-      kind: "anim";
-      from: number;
-      to: number;
-      width: number;
-      commitIndex: number;
-      layout: AdjacentLayout | JumpLayout;
-    };
+    kind: "anim";
+    from: number;
+    to: number;
+    width: number;
+    commitIndex: number;
+    layout: AdjacentLayout | JumpLayout;
+  };
 
 type DragSession = {
   pointerId: number;
@@ -340,104 +340,102 @@ export function GamesTable({ games }: { games: TournamentGame[] }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <h2 className="flex items-center gap-2 text-2xl leading-8 font-bold">
-            <ChessPawn aria-hidden="true" className="size-4.5 shrink-0 text-primary" />
-            Rundy
-          </h2>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex w-full min-w-0 flex-col gap-5">
+    <TournamentSection
+      className="min-w-0 lg:flex-1"
+      header={
+        <>
+          <ChessPawn aria-hidden="true" className="size-4.5 shrink-0 text-primary" />
+          Partie
+        </>
+      }
+    >
+      <div className="flex w-full min-w-0 flex-col gap-5">
+        <div
+          ref={tabListRef}
+          role="tablist"
+          aria-label="Rundy"
+          className="flex min-w-0 gap-1.5 overflow-x-auto overscroll-x-contain"
+          onKeyDown={onTabsKeyDown}
+        >
+          {rounds.map((round, roundIndex) => {
+            const isSelected = roundIndex === selected;
+            return (
+              <button
+                key={round.round}
+                type="button"
+                role="tab"
+                id={`${baseId}-tab-${round.round}`}
+                data-round-index={roundIndex}
+                aria-selected={isSelected}
+                aria-controls={`${baseId}-panel`}
+                tabIndex={isSelected ? 0 : -1}
+                className={cn(
+                  "shrink-0 rounded-xl px-3.5 py-2 text-sm font-semibold whitespace-nowrap",
+                  isSelected
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+                onClick={() => select(roundIndex)}
+              >
+                Runda {round.round}
+              </button>
+            );
+          })}
+        </div>
+        <div
+          ref={viewportRef}
+          role="tabpanel"
+          id={`${baseId}-panel`}
+          aria-labelledby={`${baseId}-tab-${rounds[selected]?.round ?? activeRound.round}`}
+          className={cn(
+            "w-full min-w-0 touch-pan-y overflow-hidden",
+            motion.kind === "drag" && "select-none",
+          )}
+          style={frameHeight ? { height: frameHeight } : undefined}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerCancel}
+          onClickCapture={onClickCapture}
+        >
           <div
-            ref={tabListRef}
-            role="tablist"
-            aria-label="Rundy"
-            className="flex min-w-0 gap-1.5 overflow-x-auto overscroll-x-contain"
-            onKeyDown={onTabsKeyDown}
+            key={motion.kind === "rest" ? `rest-${activeRound.round}` : "moving"}
+            ref={trackRef}
+            className="flex items-start"
+            style={{
+              gap: PANEL_GAP_PX,
+              ...(motion.kind === "rest"
+                ? {}
+                : {
+                  transform: `translateX(${motion.kind === "drag" ? motion.x : motion.from}px)`,
+                }),
+            }}
           >
-            {rounds.map((round, roundIndex) => {
-              const isSelected = roundIndex === selected;
-              return (
-                <button
-                  key={round.round}
-                  type="button"
-                  role="tab"
-                  id={`${baseId}-tab-${round.round}`}
-                  data-round-index={roundIndex}
-                  aria-selected={isSelected}
-                  aria-controls={`${baseId}-panel`}
-                  tabIndex={isSelected ? 0 : -1}
-                  className={cn(
-                    "shrink-0 rounded-xl px-3.5 py-2 text-sm font-semibold whitespace-nowrap",
-                    isSelected
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                  onClick={() => select(roundIndex)}
-                >
-                  Runda {round.round}
-                </button>
-              );
-            })}
-          </div>
-          <div
-            ref={viewportRef}
-            role="tabpanel"
-            id={`${baseId}-panel`}
-            aria-labelledby={`${baseId}-tab-${rounds[selected]?.round ?? activeRound.round}`}
-            className={cn(
-              "w-full min-w-0 touch-pan-y overflow-hidden",
-              motion.kind === "drag" && "select-none",
-            )}
-            style={frameHeight ? { height: frameHeight } : undefined}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerCancel}
-            onClickCapture={onClickCapture}
-          >
-            <div
-              key={motion.kind === "rest" ? `rest-${activeRound.round}` : "moving"}
-              ref={trackRef}
-              className="flex items-start"
-              style={{
-                gap: PANEL_GAP_PX,
-                ...(motion.kind === "rest"
-                  ? {}
-                  : {
-                      transform: `translateX(${motion.kind === "drag" ? motion.x : motion.from}px)`,
-                    }),
-              }}
-            >
-              {panels.map((panel) => (
-                <div
-                  key={panel.round}
-                  ref={panel.current ? panelRef : undefined}
-                  className={cn("shrink-0", motion.kind === "rest" && "w-full")}
-                  style={panelWidth ? { width: panelWidth } : undefined}
-                  aria-hidden={panel.hidden || undefined}
-                  inert={panel.hidden || undefined}
-                >
-                  <div className="flex flex-col gap-3">
-                    {panel.games.map((game) => (
-                      <GameCard
-                        key={game.id}
-                        white={cardPlayer(game.white)}
-                        black={cardPlayer(game.black)}
-                        result={game.result}
-                      />
-                    ))}
-                  </div>
+            {panels.map((panel) => (
+              <div
+                key={panel.round}
+                ref={panel.current ? panelRef : undefined}
+                className={cn("shrink-0", motion.kind === "rest" && "w-full")}
+                style={panelWidth ? { width: panelWidth } : undefined}
+                aria-hidden={panel.hidden || undefined}
+                inert={panel.hidden || undefined}
+              >
+                <div className="flex flex-col gap-3">
+                  {panel.games.map((game) => (
+                    <GameCard
+                      key={game.id}
+                      white={cardPlayer(game.white)}
+                      black={cardPlayer(game.black)}
+                      result={game.result}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </TournamentSection>
   );
 }
 

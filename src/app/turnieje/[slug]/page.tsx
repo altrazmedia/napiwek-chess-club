@@ -27,17 +27,13 @@ export default async function TournamentPage({ params }: PageProps<"/turnieje/[s
   return (
     <PageShell>
       <TournamentHeader name={tournament.name} heldOn={tournament.heldOn} />
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start mt-6">
-        <section className="lg:contents">
-          <StandingsTable standings={standings} />
-        </section>
-        <section className="min-w-0 lg:flex-1">
-          {tournament.games.length === 0 ? (
-            <p>Brak partii.</p>
-          ) : (
-            <GamesTable key={slug} games={tournament.games} />
-          )}
-        </section>
+      <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start">
+        <StandingsTable standings={standings} />
+        {tournament.games.length === 0 ? (
+          <p className="min-w-0 lg:flex-1">Brak partii.</p>
+        ) : (
+          <GamesTable key={slug} games={tournament.games} />
+        )}
       </div>
     </PageShell>
   );
