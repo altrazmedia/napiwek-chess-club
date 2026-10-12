@@ -12,7 +12,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="pl" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
         <SiteNav />
-        <div className="flex min-h-full flex-1 flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pt-14 md:pb-0">
+        <div className="flex min-h-full flex-1 flex-col pb-[calc(3rem+max(0.5rem,env(safe-area-inset-bottom)))] md:pt-14 md:pb-0">
           {children}
         </div>
       </body>

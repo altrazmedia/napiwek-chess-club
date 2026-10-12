@@ -16,18 +16,26 @@ export function PlayerCard({ player }: { player: PlayerListItem }) {
         </CardHeader>
         <CardContent className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <TrophyIcon className="stroke-primary size-4" /><p>{player.tournamentsPlayed} {polishPlural(player.tournamentsPlayed, {
-              one: "ukończony turniej",
-              few: "ukończone turnieje",
-              many: "ukończonych turniejów",
-            })}</p>
+            <TrophyIcon className="size-4 stroke-primary" />
+            <p>
+              {player.tournamentsPlayed}{" "}
+              {polishPlural(player.tournamentsPlayed, {
+                one: "ukończony turniej",
+                few: "ukończone turnieje",
+                many: "ukończonych turniejów",
+              })}
+            </p>
           </div>
           <div className="flex items-center gap-2">
-            <ChessPawnIcon className="stroke-primary size-4" /><p>{player.gamesPlayed} {polishPlural(player.gamesPlayed, {
-              one: "rozegrana partia",
-              few: "rozegrane partie",
-              many: "rozegranych partii",
-            })}</p>
+            <ChessPawnIcon className="size-4 stroke-primary" />
+            <p>
+              {player.gamesPlayed}{" "}
+              {polishPlural(player.gamesPlayed, {
+                one: "rozegrana partia",
+                few: "rozegrane partie",
+                many: "rozegranych partii",
+              })}
+            </p>
           </div>
         </CardContent>
       </Card>

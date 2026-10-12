@@ -14,7 +14,7 @@ export function SiteNav() {
   return (
     <>
       <nav className="fixed inset-x-0 top-0 z-50 hidden border-b bg-background md:block">
-        <ul className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-4">
+        <ul className="mx-auto flex h-14 max-w-5xl items-center justify-center gap-6 px-4">
           {navItems.map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
@@ -24,7 +24,7 @@ export function SiteNav() {
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex items-center gap-2 ${active ? "font-bold" : "font-normal"}`}
+                  className={`flex items-center gap-2 ${active ? "font-bold text-primary" : "font-normal text-foreground"}`}
                 >
                   <Icon className="size-4" aria-hidden />
                   {item.label}
@@ -35,8 +35,8 @@ export function SiteNav() {
         </ul>
       </nav>
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/80 backdrop-blur-md md:hidden">
-        <ul className="flex pb-[env(safe-area-inset-bottom)]">
+      <nav className="fixed bottom-[max(0.5rem,env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 md:hidden">
+        <ul className="flex items-center justify-between rounded-full bg-card/50 px-0.5 py-1 shadow-[0_4px_16px_rgba(0,0,0,0.12)] ring-1 ring-black/10 backdrop-blur-xl backdrop-saturate-150">
           {navItems.map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
@@ -46,9 +46,10 @@ export function SiteNav() {
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex flex-col items-center gap-1 px-1 py-2 text-xs ${active ? "font-bold" : "font-normal"}`}
+                  className={`flex flex-col items-center gap-0.5 rounded-full py-0.5 text-[10px] leading-none tracking-tight whitespace-nowrap ${active ? "font-bold text-primary" : "font-medium text-foreground"
+                    }`}
                 >
-                  <Icon className="size-5" aria-hidden />
+                  <Icon className="size-5 shrink-0" aria-hidden />
                   {item.label}
                 </Link>
               </li>
