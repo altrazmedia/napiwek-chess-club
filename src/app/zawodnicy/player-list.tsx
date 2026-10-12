@@ -11,15 +11,15 @@ export function PlayerList({ players }: { players: PlayerListItem[] }) {
 
   return (
     <>
-      <label className="mt-6 flex max-w-sm flex-col gap-2 text-sm font-medium">
-        Szukaj
+      <div className="flex flex-row justify-center">
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Imię lub nazwisko"
+          placeholder="Szukaj zawodnika"
           type="search"
+          className="mt-6 max-w-sm text-center"
         />
-      </label>
+      </div>
       {visible.length === 0 ? (
         <p className="mt-6">Brak zawodników o tym imieniu lub nazwisku.</p>
       ) : (
