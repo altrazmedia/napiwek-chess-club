@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { Swords } from "lucide-react";
+import { SectionHeader } from "@/components/section-header";
+import { Card } from "@/components/ui/card";
 import { listPlayerGames, listPlayerTournaments } from "@/lib/db/queries/players";
 import { polishPlural } from "@/lib/polish-plural";
 import { routes } from "@/lib/routes";
@@ -9,9 +12,9 @@ export async function FrequentOpponents({ playerId }: { playerId: string }) {
 
   if (opponents === "error") {
     return (
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold">Najczęstsi przeciwnicy</h2>
-        <p className="mt-3">Nie udało się wczytać przeciwników.</p>
+      <section>
+        <SectionHeader title="Najczęstsi przeciwnicy" icon={Swords} className="mb-4" />
+        <p>Nie udało się wczytać przeciwników.</p>
       </section>
     );
   }
@@ -21,22 +24,30 @@ export async function FrequentOpponents({ playerId }: { playerId: string }) {
   }
 
   return (
-    <section className="mt-8">
-      <h2 className="text-lg font-semibold">Najczęstsi przeciwnicy</h2>
+    <section>
+      <SectionHeader title="Najczęstsi przeciwnicy" icon={Swords} className="mb-4" />
       {opponents.length === 0 ? (
-        <p className="mt-3">Ten zawodnik nie rozegrał jeszcze partii z innymi zawodnikami.</p>
+        <p>Ten zawodnik nie rozegrał jeszcze partii z innymi zawodnikami.</p>
       ) : (
-        <ul className="mt-3 flex flex-col gap-1">
-          {opponents.map((opponent) => (
-            <li key={opponent.id}>
-              <Link href={routes.player(opponent.slug)} className="hover:underline">
-                {opponent.firstName} {opponent.lastName}
-              </Link>
-              {" — "}
-              {partieLabel(opponent.games)}
-            </li>
-          ))}
-        </ul>
+        <Card size="sm" className="gap-0 py-2">
+          <ul>
+            {opponents.map((opponent) => (
+              <li key={opponent.id}>
+                <Link
+                  href={routes.player(opponent.slug)}
+                  className="group flex items-center justify-between gap-4 px-(--card-spacing) py-2.5"
+                >
+                  <span className="min-w-0 font-medium group-hover:underline">
+                    {opponent.firstName} {opponent.lastName}
+                  </span>
+                  <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                    {partieLabel(opponent.games)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
     </section>
   );

@@ -32,12 +32,14 @@ export default async function PlayerPage({ params }: PageProps<"/zawodnicy/[slug
       <Suspense fallback={<Spinner />}>
         <PointsShare playerId={player.id} />
       </Suspense>
-      <Suspense fallback={<Spinner />}>
-        <TournamentResults playerId={player.id} />
-      </Suspense>
-      <Suspense fallback={<Spinner />}>
-        <FrequentOpponents playerId={player.id} />
-      </Suspense>
+      <div className="mt-8 grid items-start gap-8 lg:grid-cols-2 [&>*]:min-w-0 [&>*:only-child]:lg:col-span-2">
+        <Suspense fallback={<Spinner />}>
+          <TournamentResults playerId={player.id} />
+        </Suspense>
+        <Suspense fallback={<Spinner />}>
+          <FrequentOpponents playerId={player.id} />
+        </Suspense>
+      </div>
     </PageShell>
   );
 }

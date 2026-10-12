@@ -22,7 +22,11 @@ export async function PointsShare({ playerId }: { playerId: string }) {
 
   return (
     <section className="mt-8">
-      <SectionHeader title="Skuteczność punktowa w turniejach" icon={TrendingUpIcon} className="mb-6" />
+      <SectionHeader
+        title="Skuteczność punktowa w turniejach"
+        icon={TrendingUpIcon}
+        className="mb-6"
+      />
       <PointsShareChart points={points} />
     </section>
   );
