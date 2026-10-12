@@ -23,9 +23,9 @@ export default async function TournamentsPage() {
 
   return (
     <PageShell title="Turnieje">
-      <ul className="mt-6 flex flex-col gap-4">
+      <ul className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         {tournaments.map((tournament) => (
-          <li key={tournament.slug}>
+          <li key={tournament.slug} className="h-full">
             <TournamentCard tournament={tournament} />
           </li>
         ))}

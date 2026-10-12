@@ -1,32 +1,58 @@
-import { and, asc, desc, eq, lte } from "drizzle-orm";
+import { and, asc, count, desc, eq, lte, max, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/lib/db";
-import { games, players, standings, tournaments } from "@/lib/db/schema";
+import { games, players, standings, tournamentPlayers, tournaments } from "@/lib/db/schema";
 
 export type TournamentPodiumEntry = {
   position: number;
   fullName: string;
   slug: string;
+  points: string;
 };
 
 export type TournamentListItem = {
   slug: string;
   name: string;
   heldOn: string;
+  playerCount: number;
+  roundsPlayed: number;
   podium: TournamentPodiumEntry[];
 };
 
 export async function listTournaments(): Promise<TournamentListItem[]> {
+  const rosterCounts = db
+    .select({
+      tournamentId: tournamentPlayers.tournamentId,
+      playerCount: count().as("player_count"),
+    })
+    .from(tournamentPlayers)
+    .groupBy(tournamentPlayers.tournamentId)
+    .as("roster_counts");
+
+  const roundCounts = db
+    .select({
+      tournamentId: games.tournamentId,
+      roundsPlayed: max(games.round).as("rounds_played"),
+    })
+    .from(games)
+    .groupBy(games.tournamentId)
+    .as("round_counts");
+
   const rows = await db
     .select({
       slug: tournaments.slug,
       name: tournaments.name,
       heldOn: tournaments.heldOn,
+      playerCount: sql<number>`coalesce(${rosterCounts.playerCount}, 0)::int`,
+      roundsPlayed: sql<number>`coalesce(${roundCounts.roundsPlayed}, 0)::int`,
       position: standings.position,
+      points: standings.points,
       fullName: players.fullName,
       playerSlug: players.slug,
     })
     .from(tournaments)
+    .leftJoin(rosterCounts, eq(tournaments.id, rosterCounts.tournamentId))
+    .leftJoin(roundCounts, eq(tournaments.id, roundCounts.tournamentId))
     .leftJoin(
       standings,
       and(eq(standings.tournamentId, tournaments.id), lte(standings.position, 3)),
@@ -43,16 +69,24 @@ export async function listTournaments(): Promise<TournamentListItem[]> {
         slug: row.slug,
         name: row.name,
         heldOn: row.heldOn,
+        playerCount: Number(row.playerCount),
+        roundsPlayed: Number(row.roundsPlayed),
         podium: [],
       };
       bySlug.set(row.slug, tournament);
     }
 
-    if (row.position != null && row.fullName != null && row.playerSlug != null) {
+    if (
+      row.position != null &&
+      row.points != null &&
+      row.fullName != null &&
+      row.playerSlug != null
+    ) {
       tournament.podium.push({
         position: row.position,
         fullName: row.fullName,
         slug: row.playerSlug,
+        points: row.points,
       });
     }
   }

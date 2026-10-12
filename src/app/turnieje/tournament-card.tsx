@@ -1,47 +1,91 @@
+import { CalendarDays, UserRoundGroup } from "lucide-react";
 import Link from "next/link";
-import { Medal } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "cn";
+import { PlayersRanking } from "@/components/players-ranking";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TournamentListItem } from "@/lib/db/queries/tournaments";
 import { formatHeldOn } from "@/lib/format-held-on";
 import { routes } from "@/lib/routes";
 
-const medalClassName: Record<number, string> = {
-  1: "text-amber-500",
-  2: "text-zinc-400",
-  3: "text-amber-700",
-};
-
 export function TournamentCard({ tournament }: { tournament: TournamentListItem }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl font-semibold">
+    <Card className="h-full gap-0 py-0">
+      <CardHeader className="gap-3 r bg-linear-to-r from-(--gradient-1) via-card via-50% to-card px-6 pt-6 pb-4">
+        <CardTitle className="text-lg  font-semibold tracking-[-0.16px]">
           <h2>
             <Link href={routes.tournament(tournament.slug)} className="hover:underline">
               {tournament.name}
             </Link>
           </h2>
         </CardTitle>
-        <CardDescription>{formatHeldOn(tournament.heldOn)}</CardDescription>
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <CalendarDays aria-hidden="true" className="size-3 stroke-primary" />
+          {formatHeldOn(tournament.heldOn)}
+        </p>
       </CardHeader>
       {tournament.podium.length > 0 ? (
-        <CardContent>
-          <ol className="flex flex-col gap-1">
-            {tournament.podium.map((entry) => (
-              <li key={entry.slug} className="flex items-center gap-2">
-                <span className="sr-only">{entry.position}. miejsce</span>
-                <Medal
-                  className={`size-4 shrink-0 ${medalClassName[entry.position]}`}
-                  aria-hidden
+        <CardContent className="p-6">
+          <PlayersRanking
+            rows={tournament.podium.map((entry) => ({
+              id: entry.slug,
+              position: entry.position,
+              slug: entry.slug,
+              name: entry.fullName,
+              value: (
+                <PodiumPoints
+                  points={entry.points}
+                  position={entry.position}
+                  roundsPlayed={tournament.roundsPlayed}
                 />
-                <Link href={routes.player(entry.slug)} className="hover:underline">
-                  {entry.fullName}
-                </Link>
-              </li>
-            ))}
-          </ol>
+              ),
+            }))}
+          />
         </CardContent>
       ) : null}
+      <CardFooter className="mt-auto border-t-0 bg-transparent px-6 pt-3 pb-6">
+        <p className="flex items-center gap-1 font-medium text-muted-foreground">
+          <UserRoundGroup aria-hidden="true" className="size-3.5" />
+          {playerCountLabel(tournament.playerCount)}
+        </p>
+      </CardFooter>
     </Card>
   );
+}
+
+function PodiumPoints({
+  points,
+  position,
+  roundsPlayed,
+}: {
+  points: string;
+  position: number;
+  roundsPlayed: number;
+}) {
+  return (
+    <span className="inline-flex items-end gap-[4.5px]">
+      <span className="text-[13px] leading-[18px] font-semibold tracking-[-0.26px]">
+        {formatCardPoints(points)}
+      </span>
+      <span
+        className={cn(
+          "text-[11px] leading-[16.5px] font-normal",
+          position === 1 ? "text-(--gold--foreground-muted)/80" : "text-muted-foreground",
+        )}
+      >
+        /{roundsPlayed} pkt
+      </span>
+    </span>
+  );
+}
+
+function formatCardPoints(points: string) {
+  return Number(points).toFixed(1);
+}
+
+function playerCountLabel(count: number) {
+  if (count === 1) {
+    return "1 zawodnik";
+  }
+
+  return `${count} zawodników`;
 }

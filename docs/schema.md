@@ -178,7 +178,7 @@ Also:
 
 No extra tables.
 
-- **Tournament list:** `tournaments` + `count(tournament_players)` + `standings` where `position <= 3`
+- **Tournament list:** `tournaments` + `count(tournament_players)` + `max(games.round)` + `standings` where `position <= 3` (including `points`)
 - **Tournament page:** standings ordered by `position`; games grouped by `round`, and within a round by the left-side player's last name, then first name (White, or the only player on a bye)
 - **Global stats / time range:** filter `tournaments.held_on`, then aggregate those `games` / `standings`
 - **Players index:** every `players` row, plus a roster count from `tournament_players` and a played-game count from `games` where `result` is `white_win`, `black_win`, or `draw`. The name filter runs in the client on that list. It does not query with `ILIKE`.

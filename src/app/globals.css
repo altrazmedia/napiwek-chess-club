@@ -48,13 +48,13 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: #f8f9ff;
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: #630ED4;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -80,6 +80,19 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --gold: #fbbf24;
+  --gold-background: #fffbeb;
+  --gold-foreground: #451a03;
+  --gold--foreground-muted: #92400e;
+  --silver: #cbd5e1;
+  --silver-background: #eff4ff;
+  --silver-foreground: var(--foreground);
+  --silver-foreground-muted: var(--muted-foreground);
+  --bronze: #fdba74;
+  --bronze-background: #fff7ed;
+  --bronze-foreground: #7c2d12;
+  --bronze-foreground-muted: var(--muted-foreground);
+  --gradient-1: #eff4ff;
 }
 
 .dark {
@@ -114,15 +127,18 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --gradient-1: #eff4ff;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   html {
     @apply font-sans;
   }
