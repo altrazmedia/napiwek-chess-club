@@ -197,13 +197,14 @@ A missing row returns `null`. An empty list returns `[]`. The page calls `notFou
 
 Query functions are plain async functions. They are not Server Functions: no `"use server"`. `"use server"` publishes an endpoint the browser can call. The `/upload` save action is that mutation. Do not add other server actions unless asked.
 
-Example for one tournament page (stored games and standings, so no stats call):
+Example for one tournament page (stored games and standings, plus a derived per-player record from those games):
 
 ```text
 src/app/turnieje/[slug]/page.tsx
 src/app/turnieje/[slug]/standings-table.tsx
 src/app/turnieje/[slug]/games-table.tsx
 src/lib/db/queries/tournaments.ts    # getTournamentBySlug → rows or null
+src/lib/stats/tournament.ts          # tournamentPlayerRecords
 ```
 
 ### Writes and API
