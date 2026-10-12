@@ -1,9 +1,11 @@
-import Link from "next/link";
+import { Trophy } from "lucide-react";
+import { GamesResultComparison } from "@/components/games-result-comparison";
 import { PageShell } from "@/components/page-shell";
-import { StatisticCard } from "@/components/statistic-card";
+import { PlayersRanking } from "@/components/players-ranking";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { loadStatsRows } from "@/lib/db/queries/stats";
 import { formatWinRatePercent } from "@/lib/format-win-rate";
-import { routes } from "@/lib/routes";
+import { polishPlural, type PolishPluralForms } from "@/lib/polish-plural";
 import {
   globalGameCounts,
   topByTournamentWins,
@@ -12,22 +14,43 @@ import {
   topByWins,
 } from "@/lib/stats/club";
 import type { PlayerRank, StatsRows, WinRateRank } from "@/lib/stats/types";
+import { StatsTotals } from "./stats-totals";
 
 type PlayersStatisticsRow = {
   id: string;
   slug: string;
   name: string;
   value: string;
+  score: number;
   ranking: number;
 };
 
-function countRows(players: PlayerRank[]): PlayersStatisticsRow[] {
+const tournamentForms = {
+  one: "turniej",
+  few: "turnieje",
+  many: "turniejów",
+} satisfies PolishPluralForms;
+
+const winForms = {
+  one: "zwycięstwo",
+  few: "zwycięstwa",
+  many: "zwycięstw",
+} satisfies PolishPluralForms;
+
+const gameForms = {
+  one: "partia",
+  few: "partie",
+  many: "partii",
+} satisfies PolishPluralForms;
+
+function countRows(players: PlayerRank[], forms: PolishPluralForms): PlayersStatisticsRow[] {
   return assignCompetitionRanks(players, (row, previous) => row.value === previous.value).map(
     (player) => ({
       id: player.id,
       slug: player.slug,
       name: player.fullName,
-      value: String(player.value),
+      value: `${player.value} ${polishPlural(player.value, forms)}`,
+      score: player.value,
       ranking: player.ranking,
     }),
   );
@@ -42,6 +65,7 @@ function winRateRows(players: WinRateRank[]): PlayersStatisticsRow[] {
     slug: player.slug,
     name: player.fullName,
     value: formatWinRatePercent(player.wins, player.played),
+    score: player.played === 0 ? 0 : player.wins / player.played,
     ranking: player.ranking,
   }));
 }
@@ -80,64 +104,87 @@ export default async function StatsPage() {
   }
 
   const globals = globalGameCounts(rows.games);
-  const globalItems = [
-    ["Liczba partii", globals.games],
-    ["Wygrane białych", globals.whiteWins],
-    ["Wygrane czarnych", globals.blackWins],
-    ["Remisy", globals.draws],
-  ] as const;
 
   return (
     <PageShell title="Statystyki">
-      <section className="mt-6">
-        <h2 className="text-lg font-semibold">Ogółem</h2>
-        <dl className="mt-3 flex flex-col gap-1">
-          {globalItems.map(([label, value]) => (
-            <div key={label} className="flex gap-2">
-              <dt>{label}</dt>
-              <dd className="font-medium">{value}</dd>
-            </div>
-          ))}
-        </dl>
+      <section className="mt-6 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+        <StatsTotals tournaments={rows.tournamentCount} games={globals.games} />
+        <GamesResultComparison
+          className="h-full"
+          title="Rozkład wyników partii"
+          segments={[
+            {
+              label: "Białe",
+              value: globals.whiteWins,
+              colorClassName: "bg-card border border-border",
+            },
+            {
+              label: "Remisy",
+              value: globals.draws,
+              colorClassName: "bg-muted-foreground",
+            },
+            {
+              label: "Czarne",
+              value: globals.blackWins,
+              colorClassName: "bg-foreground",
+            },
+          ]}
+        />
       </section>
-      <Ranking
-        title="Najwięcej turniejów"
-        rows={countRows(topByTournamentsPlayed(rows.players, rows.roster))}
-      />
-      <Ranking
-        title="Najwięcej wygranych partii"
-        rows={countRows(topByWins(rows.players, rows.games))}
-      />
-      <Ranking
-        title="Najlepszy procent wygranych"
-        rows={winRateRows(topByWinRate(rows.players, rows.games))}
-      />
-      <Ranking
-        title="Najwięcej wygranych turniejów"
-        rows={countRows(topByTournamentWins(rows.players, rows.standings))}
-      />
+      <section className="mt-8">
+        <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+          <Trophy aria-hidden className="size-4.5 text-primary" />
+          Klasyfikacje najlepszych zawodników
+        </h2>
+        <div className="mt-6 grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
+          <RankingCard
+            title="Liczba rozegranych turniejów"
+            rows={countRows(topByTournamentsPlayed(rows.players, rows.roster), tournamentForms)}
+          />
+          <RankingCard
+            title="Liczba wygranych turniejów"
+            rows={countRows(topByTournamentWins(rows.players, rows.standings), winForms)}
+          />
+          <RankingCard
+            title="Najwięcej wygranych partii"
+            rows={countRows(topByWins(rows.players, rows.games), gameForms)}
+          />
+          <RankingCard
+            title="Najlepszy procent zwycięstw"
+            rows={winRateRows(topByWinRate(rows.players, rows.games))}
+          />
+        </div>
+      </section>
     </PageShell>
   );
 }
 
-function Ranking({ title, rows }: { title: string; rows: PlayersStatisticsRow[] }) {
+function RankingCard({ title, rows }: { title: string; rows: PlayersStatisticsRow[] }) {
   return (
-    <section className="mt-8">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      {rows.length === 0 ? (
-        <p className="mt-3">Brak zawodników.</p>
-      ) : (
-        <ul className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-3">
-          {rows.map((row) => (
-            <li key={row.id} className="h-full">
-              <Link href={routes.player(row.slug)} className="block h-full">
-                <StatisticCard title={row.name} description={row.value} ranking={row.ranking} />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold">
+          <h3>{title}</h3>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {rows.length === 0 ? (
+          <p>Brak zawodników.</p>
+        ) : (
+          <PlayersRanking
+            bars
+            rows={rows.map((row) => ({
+              id: row.id,
+              position: row.ranking,
+              slug: row.slug,
+              name: row.name,
+              value: row.value,
+              score: row.score,
+            }))}
+          />
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

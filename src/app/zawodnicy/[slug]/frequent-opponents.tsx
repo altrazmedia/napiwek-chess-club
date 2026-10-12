@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listPlayerGames, listPlayerTournaments } from "@/lib/db/queries/players";
+import { polishPlural } from "@/lib/polish-plural";
 import { routes } from "@/lib/routes";
 import { frequentOpponents, type FrequentOpponent } from "@/lib/stats/player";
 
@@ -55,13 +56,6 @@ async function loadOpponents(playerId: string): Promise<FrequentOpponent[] | nul
 }
 
 function partieLabel(count: number) {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-  if (count === 1) {
-    return "1 partia";
-  }
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
-    return `${count} partie`;
-  }
-  return `${count} partii`;
+  const form = polishPlural(count, { one: "partia", few: "partie", many: "partii" });
+  return `${count} ${form}`;
 }

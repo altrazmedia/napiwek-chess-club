@@ -4,14 +4,16 @@ import { cn } from "cn";
 function Card({
   className,
   size = "default",
+  gradient = false,
   ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+}: React.ComponentProps<"div"> & { size?: "default" | "sm"; gradient?: boolean }) {
   return (
     <div
       data-slot="card"
       data-size={size}
       className={cn(
         "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground shadow-sm transition-shadow duration-200 ease-[ease] [--card-spacing:--spacing(4)] hover:shadow-md has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        gradient && "bg-linear-to-br from-card to-(--gradient-1)",
         className,
       )}
       {...props}

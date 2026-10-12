@@ -95,7 +95,7 @@ Played games are only `white_win`, `black_win`, and `draw`. Byes, forfeits, and 
 
 The page shows:
 
-- **Overall:** number of played games, white wins, black wins, and draws. Those three results add up to the game total. Zeros stay visible.
+- **Overall:** number of stored tournaments, number of played games, white wins, black wins, and draws. Those three results add up to the game total. Zeros stay visible. Each of those three results is also shown as a share of played games: one decimal, Polish decimal comma, each percentage rounded on its own. Zero played games is `0,0%` for each.
 - **Most tournaments** (top 5): roster rows in `tournament_players`.
 - **Most won games** (top 5): played-game wins.
 - **Best win percentage** (top 5): wins / played games, draws in the denominator, minimum 15 played games. Rank by the exact ratio. Display one decimal.

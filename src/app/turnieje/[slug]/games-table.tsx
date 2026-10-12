@@ -36,13 +36,13 @@ type Motion =
   | { kind: "rest" }
   | { kind: "drag"; x: number; width: number; layout: AdjacentLayout }
   | {
-    kind: "anim";
-    from: number;
-    to: number;
-    width: number;
-    commitIndex: number;
-    layout: AdjacentLayout | JumpLayout;
-  };
+      kind: "anim";
+      from: number;
+      to: number;
+      width: number;
+      commitIndex: number;
+      layout: AdjacentLayout | JumpLayout;
+    };
 
 type DragSession = {
   pointerId: number;
@@ -407,8 +407,8 @@ export function GamesTable({ games }: { games: TournamentGame[] }) {
               ...(motion.kind === "rest"
                 ? {}
                 : {
-                  transform: `translateX(${motion.kind === "drag" ? motion.x : motion.from}px)`,
-                }),
+                    transform: `translateX(${motion.kind === "drag" ? motion.x : motion.from}px)`,
+                  }),
             }}
           >
             {panels.map((panel) => (

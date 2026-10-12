@@ -12,7 +12,7 @@ export function TournamentSection({
 }) {
   return (
     <section className={className}>
-      <h2 className="flex items-center gap-2 text-2xl leading-8 font-bold mb-4">{header}</h2>
+      <h2 className="mb-4 flex items-center gap-2 text-2xl leading-8 font-bold">{header}</h2>
       <Card>
         <CardContent>{children}</CardContent>
       </Card>
