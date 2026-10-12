@@ -43,7 +43,7 @@ export function GamesResultComparison({
           {segments.map((segment, index) => (
             <div
               key={`${segment.label}-${index}`}
-              className="min-w-0 rounded-xl border px-2 py-2.5 @min-[22rem]:p-3"
+              className="min-w-0 rounded-xl border bg-card px-2 py-2.5 @min-[22rem]:p-3"
             >
               <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                 <span

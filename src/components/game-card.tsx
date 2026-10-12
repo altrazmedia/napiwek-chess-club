@@ -28,28 +28,58 @@ const colorLabel = {
   black: "Czarne",
 } as const;
 
+const descriptionClassName = "text-xs font-semibold tracking-wide";
+
+type GameCardNameLayout = "stacked" | "inline";
+
 export function GameCard({
   white,
   black,
   result,
   description,
+  descriptionHref,
+  nameLayout = "stacked",
 }: {
   white: GameCardPlayer | null;
   black: GameCardPlayer | null;
   result: GameCardResult;
   description?: string;
+  descriptionHref?: string;
+  nameLayout?: GameCardNameLayout;
 }) {
   const seats = seatsFor(white, black, result);
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl bg-(--gradient-1)/60 p-4">
       {description ? (
-        <p className="text-xs font-semibold tracking-wide text-primary">{description}</p>
+        descriptionHref ? (
+          <Link
+            href={descriptionHref}
+            className={cn(
+              descriptionClassName,
+              "truncate text-center text-muted-foreground hover:underline",
+            )}
+          >
+            {description}
+          </Link>
+        ) : (
+          <p className={descriptionClassName}>{description}</p>
+        )
       ) : null}
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-        <PlayerSide player={seats.left} color={seats.leftColor} align="left" />
+        <PlayerSide
+          player={seats.left}
+          color={seats.leftColor}
+          align="left"
+          nameLayout={nameLayout}
+        />
         <Score result={result} />
-        <PlayerSide player={seats.right} color={seats.rightColor} align="right" />
+        <PlayerSide
+          player={seats.right}
+          color={seats.rightColor}
+          align="right"
+          nameLayout={nameLayout}
+        />
       </div>
     </div>
   );
@@ -79,10 +109,12 @@ function PlayerSide({
   player,
   color,
   align,
+  nameLayout,
 }: {
   player: GameCardPlayer | null;
   color: PieceColor | null;
   align: "left" | "right";
+  nameLayout: GameCardNameLayout;
 }) {
   if (!player || !color) {
     return <div />;
@@ -91,18 +123,37 @@ function PlayerSide({
   const name = (
     <Link
       href={player.href}
-      className={cn("min-w-0 overflow-hidden hover:underline", align === "right" && "text-right")}
+      className={cn(
+        "min-w-0 hover:underline",
+        nameLayout === "inline" ? "truncate" : "overflow-hidden",
+        align === "right" && nameLayout === "stacked" && "text-right",
+      )}
     >
       <span className="sr-only">{colorLabel[color]}</span>
-      <span className="block truncate text-xs text-muted-foreground">{player.firstName}</span>
-      <span className="block truncate text-sm font-semibold">{player.lastName}</span>
+      {nameLayout === "inline" ? (
+        <span className="text-sm font-semibold">
+          {player.firstName} {player.lastName}
+        </span>
+      ) : (
+        <>
+          <span className="block truncate text-xs text-muted-foreground">{player.firstName}</span>
+          <span className="block truncate text-sm font-semibold">{player.lastName}</span>
+        </>
+      )}
     </Link>
   );
   const dot = <span aria-hidden="true" className={dotClassName[color]} />;
 
+  const towardScore = nameLayout === "inline";
+
   if (align === "right") {
     return (
-      <div className="flex min-w-0 items-center justify-end gap-2">
+      <div
+        className={cn(
+          "flex min-w-0 items-center gap-2",
+          towardScore ? "justify-start" : "justify-end",
+        )}
+      >
         {name}
         {dot}
       </div>
@@ -110,7 +161,7 @@ function PlayerSide({
   }
 
   return (
-    <div className="flex min-w-0 items-center gap-2">
+    <div className={cn("flex min-w-0 items-center gap-2", towardScore && "justify-end")}>
       {dot}
       {name}
     </div>

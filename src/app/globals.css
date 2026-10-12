@@ -27,6 +27,8 @@
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-green: var(--green);
+  --color-blue: var(--blue);
+  --color-pink: var(--pink);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -85,6 +87,8 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
   --green: #047857;
+  --blue: #1d4ed8;
+  --pink: #db2777;
   --gold: #fbbf24;
   --gold-background: #fffbeb;
   --gold-foreground: #451a03;

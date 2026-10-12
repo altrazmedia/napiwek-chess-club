@@ -40,13 +40,9 @@ export default async function HeadToHeadPage({ params }: PageProps<"/head-to-hea
   }
 
   const [playerA, playerB] = selected;
-  const title =
-    playerA && playerB
-      ? `Bezpośrednio: ${playerA.firstName} ${playerA.lastName} — ${playerB.firstName} ${playerB.lastName}`
-      : "Bezpośrednio";
 
   return (
-    <PageShell title={title}>
+    <PageShell>
       <PlayerPicker
         key={selectedSlugs.join("/")}
         players={players.map(({ slug, firstName, lastName }) => ({ slug, firstName, lastName }))}
@@ -54,9 +50,20 @@ export default async function HeadToHeadPage({ params }: PageProps<"/head-to-hea
         initialSecondSlug={playerB?.slug ?? null}
       />
       {playerA && playerB ? (
-        <Suspense fallback={<Spinner />}>
-          <Matchup playerA={playerA} playerB={playerB} />
-        </Suspense>
+        <>
+          <h1 className="mt-8 text-center text-2xl font-semibold">
+            <span className="text-pink">
+              {playerA.firstName} {playerA.lastName}
+            </span>
+            {" vs. "}
+            <span className="text-blue">
+              {playerB.firstName} {playerB.lastName}
+            </span>
+          </h1>
+          <Suspense fallback={<Spinner />}>
+            <Matchup playerA={playerA} playerB={playerB} />
+          </Suspense>
+        </>
       ) : null}
     </PageShell>
   );

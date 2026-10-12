@@ -129,9 +129,9 @@ The page title names neither player, one player, or both, matching how many dist
 
 Played games are only `white_win`, `black_win`, and `draw`. Byes, forfeits, and unplayed pairings are ignored.
 
-**Overall**, **first player as White**, and **second player as White** each show both players' wins and the draws. Zeros stay visible. No percentages. In a White block, that player's wins are white wins and the opponent's wins are black wins. The two color blocks add up to overall.
+**Overall**, **first player as White**, and **second player as White** each show both players' wins and the draws. Zeros stay visible. Each of those three results is also shown as a share of played games in that block: one decimal, Polish decimal comma, each percentage rounded on its own. Zero played games in that block is `0,0%` for each. In a White block, that player's wins are white wins and the opponent's wins are black wins. The two color blocks add up to overall.
 
-**Games** lists those games, newest `held_on` first. The same date is ordered by tournament name (Polish collation), then round ascending. Each item links the tournament, shows the date, and shows White, the score, and Black, with White and Black linking to those players. The winner is indicated; a draw has no winner. No games: the three blocks at zero and an empty state. A failed game load keeps the pickers and shows an error.
+**Games** lists those games, newest `held_on` first. The same date is ordered by tournament name (Polish collation), then round ascending. Each item links the tournament, shows the date, and shows White, the score, and Black, with White and Black linking to those players. The winner is indicated; a draw has no winner. No games: the three result blocks and the game list stay hidden, and the page shows only an empty state under the pickers. A failed game load keeps the pickers and shows an error.
 
 ### Upload a tournament
 
