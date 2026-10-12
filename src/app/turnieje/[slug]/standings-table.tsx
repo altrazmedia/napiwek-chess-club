@@ -61,12 +61,8 @@ export function StandingsTable({ standings }: { standings: StandingRow[] }) {
   return (
     <TournamentSection
       className="w-full min-w-0 lg:w-3/5 lg:shrink-0"
-      header={
-        <>
-          <ListOrdered aria-hidden="true" className="size-5 shrink-0 text-primary" />
-          Klasyfikacja końcowa
-        </>
-      }
+      title="Klasyfikacja końcowa"
+      icon={ListOrdered}
     >
       {standings.length === 0 ? (
         <p>Brak klasyfikacji.</p>

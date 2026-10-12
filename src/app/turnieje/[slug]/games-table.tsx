@@ -340,15 +340,7 @@ export function GamesTable({ games }: { games: TournamentGame[] }) {
   }
 
   return (
-    <TournamentSection
-      className="min-w-0 lg:flex-1"
-      header={
-        <>
-          <ChessPawn aria-hidden="true" className="size-4.5 shrink-0 text-primary" />
-          Partie
-        </>
-      }
-    >
+    <TournamentSection className="min-w-0 lg:flex-1" title="Partie" icon={ChessPawn}>
       <div className="flex w-full min-w-0 flex-col gap-5">
         <div
           ref={tabListRef}

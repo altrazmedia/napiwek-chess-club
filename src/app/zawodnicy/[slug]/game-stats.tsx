@@ -1,6 +1,11 @@
+import {
+  GamesResultComparison,
+  type GamesResultSegment,
+} from "@/components/games-result-comparison";
+import { SectionHeader } from "@/components/section-header";
 import { listPlayerGames, type PlayerGameRow } from "@/lib/db/queries/players";
-import { formatWinRate } from "@/lib/format-win-rate";
 import { playerColorRecord, type ColorRecord } from "@/lib/stats/player";
+import { ChessPawnIcon } from "lucide-react";
 
 export async function GameStats({ playerId }: { playerId: string }) {
   const games = await loadGames(playerId);
@@ -18,30 +23,34 @@ export async function GameStats({ playerId }: { playerId: string }) {
 
   return (
     <section className="mt-8">
-      <h2 className="text-lg font-semibold">Statystyki partii</h2>
-      <ColorBlock title="Ogólnie" record={records.overall} />
-      <ColorBlock title="Białymi" record={records.white} />
-      <ColorBlock title="Czarnymi" record={records.black} />
+      <SectionHeader title="Statystyki partii" icon={ChessPawnIcon} className="mb-4" />
+      <div className="mt-4 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
+        <GamesResultComparison
+          className="h-full"
+          title="Ogólnie"
+          segments={resultSegments(records.overall)}
+        />
+        <GamesResultComparison
+          className="h-full"
+          title="Białymi"
+          segments={resultSegments(records.white)}
+        />
+        <GamesResultComparison
+          className="h-full"
+          title="Czarnymi"
+          segments={resultSegments(records.black)}
+        />
+      </div>
     </section>
   );
 }
 
-function ColorBlock({ title, record }: { title: string; record: ColorRecord }) {
-  return (
-    <div className="mt-4 flex flex-col gap-1">
-      <h3 className="font-semibold">{title}</h3>
-      <p>Rozegrane: {record.played}</p>
-      <p>
-        Zwycięstwa: {record.wins} ({formatWinRate(record.wins, record.played)})
-      </p>
-      <p>
-        Remisy: {record.draws} ({formatWinRate(record.draws, record.played)})
-      </p>
-      <p>
-        Porażki: {record.losses} ({formatWinRate(record.losses, record.played)})
-      </p>
-    </div>
-  );
+function resultSegments(record: ColorRecord): GamesResultSegment[] {
+  return [
+    { label: "Zwycięstwa", value: record.wins, colorClassName: "bg-primary" },
+    { label: "Remisy", value: record.draws, colorClassName: "bg-muted-foreground" },
+    { label: "Porażki", value: record.losses, colorClassName: "bg-foreground" },
+  ];
 }
 
 async function loadGames(playerId: string): Promise<PlayerGameRow[] | null> {
