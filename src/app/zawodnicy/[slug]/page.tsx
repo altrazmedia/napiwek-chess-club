@@ -37,7 +37,7 @@ export default async function PlayerPage({ params }: PageProps<"/zawodnicy/[slug
           <TournamentResults playerId={player.id} />
         </Suspense>
         <Suspense fallback={<Spinner />}>
-          <FrequentOpponents playerId={player.id} />
+          <FrequentOpponents playerId={player.id} playerSlug={player.slug} />
         </Suspense>
       </div>
     </PageShell>

@@ -1,6 +1,6 @@
 import type { DateRange, StatsGameResult } from "./types";
 
-const OPPONENT_LIMIT = 3;
+const OPPONENT_LIMIT = 5;
 const POINTS_SHARE_MIN_TOURNAMENTS = 3;
 
 const playedResults = new Set<StatsGameResult>(["white_win", "black_win", "draw"]);
