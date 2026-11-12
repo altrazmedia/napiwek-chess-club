@@ -30,7 +30,7 @@ Do not add columns or tables for:
 - comments, photos, bios
 - `deleted_at` (edit/delete after upload is still undecided)
 
-**Player identity matching** lives in the upload layer (see [app-overview.md](./app-overview.md) / [tech-stack.md](./tech-stack.md)), not in this schema. Names are not unique here; the upload API attaches a TRF name to a `player_id`. The schema assumes stable `player_id`s once resolved.
+**Player identity matching** lives in the upload layer (see [app-overview.md](./app-overview.md) / [tech-stack.md](./tech-stack.md)), not in this schema. Names are not unique here. `/upload` resolves a TRF name to a `player_id` after the operator confirms the suggestion. The schema assumes stable `player_id`s once resolved.
 
 ## Enum: `game_result`
 
@@ -101,10 +101,10 @@ Delete behavior: deleting a tournament cascades to `tournament_players`, `standi
 | `first_name` | text not null | not unique |
 | `last_name` | text not null | not unique |
 | `slug` | text not null unique | kebab-case check; public URL key |
-| `full_name` | text generated | `first_name || ' ' || last_name`, stored, for `ILIKE` search |
+| `full_name` | text generated | `first_name || ' ' || last_name`, stored. Used by upload name suggestions. |
 | `created_at` | timestamptz not null | default `now()` |
 
-`ILIKE` on `full_name` / first / last is enough at this scale. Do not add `pg_trgm` until needed.
+`pg_trgm` is installed. Upload suggestions use `similarity(lower(full_name), lower(first || ' ' || last))` and scan `players`. There is no trigram index. The players index filters names in the browser and does not query this extension.
 
 ### `tournaments`
 

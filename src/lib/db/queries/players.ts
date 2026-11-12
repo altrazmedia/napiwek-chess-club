@@ -68,6 +68,68 @@ export async function listPlayers(): Promise<PlayerListItem[]> {
     .sort(comparePlayers);
 }
 
+const nameSimilarityThreshold = 0.5;
+
+export type PlayerNameSuggestion = {
+  id: string;
+  firstName: string;
+  lastName: string;
+};
+
+/**
+ * One suggestion per input name, in the same order. Null when nothing scores above the threshold.
+ * Highest trigram similarity wins. Ties break by last name, first name, then id.
+ */
+export async function suggestPlayersByName(
+  names: { firstName: string; lastName: string }[],
+): Promise<(PlayerNameSuggestion | null)[]> {
+  if (names.length === 0) {
+    return [];
+  }
+
+  const nameRows = sql.join(
+    names.map((name, index) => {
+      const fullName = `${name.firstName.trim()} ${name.lastName.trim()}`;
+      return sql`(${index}::int, ${fullName}::text)`;
+    }),
+    sql`, `,
+  );
+
+  const result = await db.execute<{
+    ord: number;
+    id: string | null;
+    first_name: string | null;
+    last_name: string | null;
+  }>(sql`
+    SELECT input.ord AS ord, match.id AS id, match.first_name AS first_name, match.last_name AS last_name
+    FROM (VALUES ${nameRows}) AS input(ord, full_name)
+    LEFT JOIN LATERAL (
+      SELECT ${players.id} AS id, ${players.firstName} AS first_name, ${players.lastName} AS last_name
+      FROM ${players}
+      WHERE similarity(lower(${players.fullName}), lower(input.full_name)) > ${nameSimilarityThreshold}
+      ORDER BY similarity(lower(${players.fullName}), lower(input.full_name)) DESC,
+        ${players.lastName},
+        ${players.firstName},
+        ${players.id}
+      LIMIT 1
+    ) AS match ON true
+    ORDER BY input.ord
+  `);
+
+  const byOrd = new Map(result.rows.map((row) => [Number(row.ord), row]));
+  return names.map((_, index) => {
+    const row = byOrd.get(index);
+    if (!row?.id || !row.first_name || !row.last_name) {
+      return null;
+    }
+    return {
+      id: row.id,
+      firstName: row.first_name,
+      lastName: row.last_name,
+    };
+  });
+}
+
 function comparePlayers(a: PlayerListItem, b: PlayerListItem) {
   return (
     a.lastName.localeCompare(b.lastName, "pl") ||

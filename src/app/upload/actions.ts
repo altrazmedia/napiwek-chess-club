@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { checkUploadToken } from "@/lib/auth/require-upload-token";
+import { suggestPlayersByName, type PlayerNameSuggestion } from "@/lib/db/queries/players";
 import {
   ReviewedUploadError,
   uploadReviewedTournament,
@@ -36,6 +37,34 @@ export type SaveUploadedTournamentResult =
   { ok: true; slug: string; name: string } | { ok: false; error: string };
 
 const genericError = "Nie udało się zapisać turnieju.";
+const suggestError = "Nie udało się dopasować zawodników.";
+
+const suggestSchema = z.array(
+  z.object({
+    firstName: z.string(),
+    lastName: z.string(),
+  }),
+);
+
+export type SuggestedPlayer = PlayerNameSuggestion;
+
+export type SuggestUploadPlayersResult =
+  { ok: true; matches: (SuggestedPlayer | null)[] } | { ok: false; error: string };
+
+export async function suggestUploadPlayers(input: unknown): Promise<SuggestUploadPlayersResult> {
+  const parsed = suggestSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: suggestError };
+  }
+
+  try {
+    const matches = await suggestPlayersByName(parsed.data);
+    return { ok: true, matches };
+  } catch (error) {
+    console.error(error);
+    return { ok: false, error: suggestError };
+  }
+}
 
 export async function saveUploadedTournament(
   input: unknown,

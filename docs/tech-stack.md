@@ -9,7 +9,7 @@ Follow this document unless a later explicit decision supersedes it. Do not add 
 | Layer | Choice | Why |
 | --- | --- | --- |
 | Starting point | Greenfield | Empty repo; no existing stack to inherit. |
-| App shape | One fullstack **Next.js** app (App Router, TypeScript) | One language, one deploy, pages + upload API in the same repo. Asked for simple. |
+| App shape | One fullstack **Next.js** app (App Router, TypeScript) | One language, one deploy, browse pages and `/upload` in the same repo. Asked for simple. |
 | Hosting | **Vercel** Hobby | Native Next.js, git push → deploy, free at this scale. No server to babysit. |
 | Database product | **Neon** Postgres | Serverless Vercel has no durable local disk; Neon is the low-friction hosted Postgres for Vercel. Local dev uses the same Neon project via `.env.local`. No Docker. Tables in [schema.md](./schema.md). |
 | Package manager | **npm** | `create-next-app` default. |
@@ -17,7 +17,7 @@ Follow this document unless a later explicit decision supersedes it. Do not add 
 | DB driver | **`pg`** + `attachDatabasePool` (`@vercel/functions`) | Current Neon/Vercel Fluid recommendation: TCP pool on Node, not Edge HTTP. |
 | UI | **Tailwind CSS 4** + **shadcn/ui** + lucide-react | Table/filter-heavy UI; copy-paste components we own; keep the look plain. |
 | Copy | Polish strings in source | Club site; no i18n library until a second language is a real requirement. |
-| Access | Public GET/pages; **Bearer token** on upload `POST`; same secret on the `/upload` server action | No user auth; still stop strangers writing to a public URL. |
+| Access | Public pages; the `/upload` save action checks `UPLOAD_TOKEN` | No user auth; still stop strangers writing to a public URL. |
 | Stats | Compute **on each request** from raw rows | Dataset is tiny; new stats = new function, no backfill. Precompute later if needed. |
 | Validation | **Zod** | Upload body and query/search params. |
 | Formatting | **Prettier** + `eslint-config-prettier` + `prettier-plugin-tailwindcss` | ESLint lints. Prettier formats (`printWidth` 100). The Tailwind plugin sorts class strings. |
@@ -33,7 +33,7 @@ These are not optional flavor:
 - **No auth** for visitors; **no admin dashboard**. The only operator UI is unlinked `/upload`.
 - **Free hosting** if possible
 - Scale: **&lt;100 players**, **&lt;100 tournaments**, results only (no moves)
-- Upload via **API** or `/upload`, operator-driven
+- Upload via `/upload`, operator-driven
 - Stats over **all tournaments or a time range**
 - **Do not** change the DB schema or add charts in the same breath as feature work unless that work’s session is about them. Schema is [schema.md](./schema.md).
 
@@ -44,8 +44,7 @@ Implication: no Redis, no worker, no second service, no monorepo, no Edge-only e
 ```text
 Visitors  →  Next.js on Vercel (Server Components, pages)
 Pages     →  src/lib/db/queries  →  Neon rows  →  src/lib/stats (pure)  →  HTML
-Operator  →  POST /api/upload-tournament-trf  (Bearer token)  →  src/lib/db/writes  →  Neon
-Operator  →  /upload (server action, same token)  →  src/lib/db/writes  →  Neon
+Operator  →  /upload (server actions; save checks the token)  →  src/lib/db  →  Neon
 ```
 
 - **Source of truth:** rows in Neon (tournaments, players, games, official standings). See [schema.md](./schema.md).
@@ -54,7 +53,7 @@ Operator  →  /upload (server action, same token)  →  src/lib/db/writes  → 
 
 ### Why fullstack Next.js (not SPA + API, not static)
 
-- Upload API + browse UI in one codebase and one Vercel project.
+- The upload page and browse UI live in one codebase and one Vercel project.
 - Time-range stats need computation on request; a fully static site makes ranges awkward.
 - A separate Vite SPA + backend is two deploys and two languages/runtimes for no gain at this size.
 
@@ -105,19 +104,19 @@ Dataset is small; aggregations are cheap. Operator must not re-upload career sta
 - Unprotected `POST` on a known Vercel URL will collect junk.
 - Whole-site Vercel Password Protection would block members and may not be free/simple on Hobby.
 
-**Upload handler must:**
+**Upload save must:**
 
-1. Reject a missing or invalid secret vs `UPLOAD_TOKEN` via `src/lib/auth/require-upload-token.ts` (constant-time compare). The curl route reads `Authorization: Bearer`. The `/upload` server action receives the same secret as an argument and uses the same compare.
-2. Validate the body with Zod (non-empty TRF text on the route; the reviewed payload on the action).
+1. Reject a missing or invalid secret vs `UPLOAD_TOKEN` via `checkUploadToken` in `src/lib/auth/require-upload-token.ts` (constant-time compare). The save action receives the secret as an argument.
+2. Validate the reviewed payload with Zod.
 3. Insert **raw** tournament data only (no derived stats writes).
 
-**Upload route (locked):** `POST /api/upload-tournament-trf`. Body is raw TRF text (`Content-Type: text/plain`). Automatic name matching. Do not ship an open endpoint. The page does not add a second write route; it calls a server action.
+**Upload (locked):** the hidden `/upload` page. The browser parses the TRF file. `suggestUploadPlayers` proposes players and does not check the token. `saveUploadedTournament` writes the reviewed tournament. Do not add an upload HTTP route.
 
 ### Why no React Query / no client fetch layer
 
 Browse pages are Server Components. Filters (time range, player ids) belong in the **URL** so links are shareable and the server can compute stats on the request. Add a client data library only if a later UI truly needs interactive client caching.
 
-**Exception:** the name field on `/zawodnicy` filters the full player list in the browser. The server still loads every player. The URL stays `/zawodnicy`. That filter does not use a search param or a client data library. Head-to-head selection is the path `/head-to-head/[slug]/[slug]`. Typing in those pickers filters the same way and does not change the URL. **Pokaż** writes the two slugs into the path. `/upload` is a client form: the server loads every player, the browser parses the TRF file, and **Zapisz** calls the server action. The URL stays `/upload`.
+**Exception:** the name field on `/zawodnicy` filters the full player list in the browser. The server still loads every player. The URL stays `/zawodnicy`. That filter does not use a search param or a client data library. Head-to-head selection is the path `/head-to-head/[slug]/[slug]`. Typing in those pickers filters the same way and does not change the URL. **Pokaż** writes the two slugs into the path. `/upload` is a client form: the server loads every player, the browser parses the TRF file, `suggestUploadPlayers` fills the suggestions, and **Zapisz** calls `saveUploadedTournament`. The URL stays `/upload`.
 
 ### Why Tailwind + shadcn (not MUI, not CSS-only)
 
@@ -131,7 +130,7 @@ One locale. i18n routing and message catalogs are extra machinery. If a second l
 
 ### Why Zod
 
-Single schema for the upload body (non-empty TRF text) and for search-param parsing. Do not hand-roll validators. Do not add Yup/Valibot as well.
+Zod validates the reviewed upload payload, the name list for player suggestions, and search params. Do not hand-roll validators. Do not add Yup/Valibot as well.
 
 ### Why Prettier
 
@@ -158,25 +157,24 @@ Do not add these unless a later written decision says so:
 | Chart library (Recharts, etc.) | The player points-share chart is hand-drawn SVG and HTML. No chart package. |
 | Playwright/Vitest as a requirement for v1 | ESLint from `create-next-app` is enough; tests optional later. |
 | Monorepo / separate API package | One Next.js app. |
-| Edge runtime for DB routes | Conflicts with chosen `pg` pooling. |
+| Edge runtime for database code | Conflicts with chosen `pg` pooling. |
 
 ## File structure
 
 Organize by layer. No `features/` or `domains/` folders. Single package, `src/` directory:
 
 ```text
-src/app/                      # routes, layouts, the upload page, and the upload Route Handler
+src/app/                      # routes, layouts, and the upload page
 src/app/<route>/…             # components used by that route only
-src/app/upload/               # hidden operator page, its client form, and the save server action
-src/app/api/upload-tournament-trf/route.ts  # TRF upload POST
+src/app/upload/               # hidden operator page, its client form, and server actions
 src/components/               # shared components, moved here on the second use
 src/components/ui/            # shadcn only, added when a page uses them
-src/lib/auth/                 # upload Bearer check (shared helper)
+src/lib/auth/                 # upload token check
 src/lib/trf/                  # TRF16 parse helpers for upload
 src/lib/db/index.ts           # Drizzle client (private)
 src/lib/db/schema.ts
 src/lib/db/queries/           # read functions, added with the first caller
-src/lib/db/writes/            # insert functions, added with the upload route
+src/lib/db/writes/            # insert functions, added with tournament upload
 src/lib/stats/                # pure stats functions; no I/O (added with the first stat)
 src/lib/utils.ts              # shadcn cn helper
 drizzle/                      # migrations (0000_init.sql)
@@ -195,7 +193,7 @@ Query functions live in `src/lib/db/queries/`, grouped by area (`tournaments.ts`
 
 A missing row returns `null`. An empty list returns `[]`. The page calls `notFound()`. Queries do not import `next/navigation`.
 
-Query functions are plain async functions. They are not Server Functions: no `"use server"`. `"use server"` publishes an endpoint the browser can call. The `/upload` save action is that mutation. Do not add other server actions unless asked.
+Query functions are plain async functions. They are not Server Functions: no `"use server"`. `"use server"` publishes an endpoint the browser can call. The `/upload` actions file is that boundary: `suggestUploadPlayers` and `saveUploadedTournament`. Do not add other server actions unless asked.
 
 Example for one tournament page (stored games and standings, plus a derived per-player record from those games):
 
@@ -207,17 +205,15 @@ src/lib/db/queries/tournaments.ts    # getTournamentBySlug → rows or null
 src/lib/stats/tournament.ts          # tournamentPlayerRecords
 ```
 
-### Writes and API
+### Writes
 
-The only HTTP API is the upload POST. There is no read API. Pages call query functions directly and do not fetch JSON.
+There is no HTTP API. Pages call query functions directly and do not fetch JSON.
 
-`src/app/api/upload-tournament-trf/route.ts` checks the bearer token (`requireUploadToken`), validates the raw TRF body with Zod, parses TRF in `src/lib/trf/`, and calls `uploadTournamentTrf` in `src/lib/db/writes/upload-tournament-trf.ts` (automatic name matching).
-
-`src/app/upload/actions.ts` (`"use server"`) checks the same secret, validates the reviewed payload with Zod, re-parses the TRF, and calls `uploadReviewedTournament` in that same writes file. The action returns `{ ok: true, slug, name }` or `{ ok: false, error }` with a Polish sentence. Expected conflicts are not thrown to the client. Do not add a read API, and do not add a second write route for the page.
+`src/app/upload/actions.ts` (`"use server"`) has two actions. `suggestUploadPlayers` takes the parsed names and returns one suggestion per name from `suggestPlayersByName` in `src/lib/db/queries/players.ts`. It does not check the upload token. `saveUploadedTournament` checks the token, validates the reviewed payload with Zod, re-parses the TRF, and calls `uploadReviewedTournament` in `src/lib/db/writes/upload-tournament-trf.ts`. The save action returns `{ ok: true, slug, name }` or `{ ok: false, error }` with a Polish sentence. Expected conflicts are not thrown to the client. Do not add a read API or an upload route.
 
 ### Import boundary
 
-Only files under `src/lib/db/` may import the Drizzle client (`@/lib/db`, `@/lib/db/index`, `@/lib/db/schema`). Pages, route handlers, `src/lib/stats`, and `src/components` import `@/lib/db/queries/...` or `@/lib/db/writes/...`. Mark `src/lib/db/index.ts` with `server-only` so a client bundle fails if it reaches the pool. Enforce the boundary with ESLint `no-restricted-imports` (no extra plugin).
+Only files under `src/lib/db/` may import the Drizzle client (`@/lib/db`, `@/lib/db/index`, `@/lib/db/schema`). Pages, server actions, `src/lib/stats`, and `src/components` import `@/lib/db/queries/...` or `@/lib/db/writes/...`. Mark `src/lib/db/index.ts` with `server-only` so a client bundle fails if it reaches the pool. Enforce the boundary with ESLint `no-restricted-imports` (no extra plugin).
 
 ## Environment
 
@@ -225,7 +221,7 @@ Names can vary but the split must exist:
 
 - `DATABASE_URL` — pooled Neon URL (app runtime)
 - `DATABASE_URL_UNPOOLED` — direct Neon URL (Drizzle Kit)
-- `UPLOAD_TOKEN` — shared secret for write API
+- `UPLOAD_TOKEN` — shared secret for the `/upload` save action
 
 Never commit secrets. Never log the token.
 
@@ -233,20 +229,20 @@ Never commit secrets. Never log the token.
 
 1. **Prefer the listed tools.** New dependencies need a real gap in this document, not taste.
 2. **Do not invent a second DB schema.** Implement Drizzle from [schema.md](./schema.md) in a dedicated change; Drizzle is the only mapper.
-3. **Upload contract is TRF** at `POST /api/upload-tournament-trf` (raw text body, automatic matching). Keep the route token-protected. `/upload` saves a reviewed TRF through the server action, with the same secret.
+3. **Upload is the `/upload` page.** The browser parses a TRF file, `suggestUploadPlayers` proposes matches, and `saveUploadedTournament` writes the reviewed tournament after checking `UPLOAD_TOKEN`. Do not add an upload HTTP route.
 4. **Do not pick a final stats catalog** unless that task is in scope. Put new metrics in `src/lib/stats` as functions over games/standings.
 5. **Do not add a chart library.** The only chart is the player points-share chart.
 6. **Keep UX simple:** lists, tables, filters. Polish copy.
 7. **Compute stats in the request** from raw data; official tournament standings are displayed as stored.
 8. **Node runtime** for anything that talks to Postgres.
-9. **Follow [File structure](#file-structure).** No feature folders. Pages call query functions. Only `src/lib/db/` imports the Drizzle client. No read API.
+9. **Follow [File structure](#file-structure).** No feature folders. Pages call query functions. Only `src/lib/db/` imports the Drizzle client. No HTTP API.
 
 ## Deferred technical topics
 
 Not decided; do not silently fill them in:
 
 - Further charts beyond the player points-share chart
-- Edit/delete APIs after upload
+- Edit/delete after upload
 - Test runner beyond ESLint
 
-**Locked with the upload route:** player identity on upload is first+last name, case- and accent-insensitive (see [app-overview.md](./app-overview.md)). The curl payload is TRF at `POST /api/upload-tournament-trf`. The `/upload` page can override that match, the new player's name, and the tournament name and date before save, and can store an optional Chess Manager URL. The TRF API leaves that URL null.
+**Locked with `/upload`:** the page suggests a player with `pg_trgm` similarity of the lowercased full name, threshold `0.3` (see [app-overview.md](./app-overview.md)). Saving a new player still rejects an exact first+last match, case- and accent-insensitive. The operator can override the suggestion, the new player's name, and the tournament name and date before save, and can store an optional Chess Manager URL.
