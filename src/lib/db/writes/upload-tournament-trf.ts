@@ -4,20 +4,12 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { games, players, standings, tournamentPlayers, tournaments } from "@/lib/db/schema";
 import type { ParsedTrf, ParsedTrfGame, ParsedTrfPlayer } from "@/lib/trf/parse";
-import { playerMatchKey } from "@/lib/trf/names";
 import {
   normalizeChessManagerUrl,
   reviewValidationError,
   type PlayerResolution,
 } from "@/lib/trf/review";
 import { playerSlugFromNames, tournamentSlugFromDate } from "@/lib/trf/slug";
-
-export class UploadConflictError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "UploadConflictError";
-  }
-}
 
 export class ReviewedUploadError extends Error {
   constructor(message: string) {
@@ -39,85 +31,6 @@ export type UploadTournamentTrfResult = {
 };
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-export async function uploadTournamentTrf(parsed: ParsedTrf): Promise<UploadTournamentTrfResult> {
-  return db.transaction(async (tx) => {
-    const existingTournament = await tx.query.tournaments.findFirst({
-      where: eq(tournaments.slug, parsed.slug),
-      columns: { id: true },
-    });
-    if (existingTournament) {
-      throw new UploadConflictError(`Tournament with slug "${parsed.slug}" already exists`);
-    }
-
-    const allPlayers = await tx.query.players.findMany({
-      columns: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        slug: true,
-      },
-    });
-
-    const byMatchKey = new Map(allPlayers.map((p) => [playerMatchKey(p.firstName, p.lastName), p]));
-    const bySlug = new Map(allPlayers.map((p) => [p.slug, p]));
-
-    let playersCreated = 0;
-    let playersReused = 0;
-    const startNumberToPlayerId = new Map<number, string>();
-
-    for (const p of parsed.players) {
-      const key = playerMatchKey(p.firstName, p.lastName);
-      const matched = byMatchKey.get(key);
-      if (matched) {
-        startNumberToPlayerId.set(p.startNumber, matched.id);
-        playersReused += 1;
-        continue;
-      }
-
-      const slugOwner = bySlug.get(p.slug);
-      if (slugOwner) {
-        throw new UploadConflictError(
-          `Player slug "${p.slug}" is already taken by a different player`,
-        );
-      }
-
-      const [inserted] = await tx
-        .insert(players)
-        .values({
-          firstName: p.firstName,
-          lastName: p.lastName,
-          slug: p.slug,
-        })
-        .returning({
-          id: players.id,
-          firstName: players.firstName,
-          lastName: players.lastName,
-          slug: players.slug,
-        });
-
-      if (!inserted) {
-        throw new Error(`Failed to insert player ${p.firstName} ${p.lastName}`);
-      }
-
-      byMatchKey.set(key, inserted);
-      bySlug.set(inserted.slug, inserted);
-      startNumberToPlayerId.set(p.startNumber, inserted.id);
-      playersCreated += 1;
-    }
-
-    return persistTournament(tx, {
-      name: parsed.name,
-      heldOn: parsed.heldOn,
-      slug: parsed.slug,
-      players: parsed.players,
-      games: parsed.games,
-      startNumberToPlayerId,
-      playersCreated,
-      playersReused,
-    });
-  });
-}
 
 export async function uploadReviewedTournament(input: {
   parsed: ParsedTrf;

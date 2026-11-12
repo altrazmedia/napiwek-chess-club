@@ -15,6 +15,13 @@
       "when": 1791761769436,
       "tag": "0001_chess_manager_url",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793236259341,
+      "tag": "0002_pg_trgm",
+      "breakpoints": true
     }
   ]
 }

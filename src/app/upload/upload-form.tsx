@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { formatPoints } from "@/lib/format-points";
 import { routes } from "@/lib/routes";
-import { playerMatchKey } from "@/lib/trf/names";
 import { parseTrf, TrfParseError, type ParsedTrf, type ParsedTrfGame } from "@/lib/trf/parse";
 import {
   normalizeChessManagerUrl,
@@ -14,7 +13,7 @@ import {
   type PlayerResolution,
   type ReviewPlayer,
 } from "@/lib/trf/review";
-import { saveUploadedTournament } from "./actions";
+import { saveUploadedTournament, suggestUploadPlayers, type SuggestedPlayer } from "./actions";
 
 type RowChoice =
   { mode: "existing"; playerId: string } | { mode: "new"; firstName: string; lastName: string };
@@ -25,7 +24,7 @@ type ReviewRow = {
   lastName: string;
   points: string;
   position: number;
-  found: boolean;
+  suggestion: SuggestedPlayer | null;
   choice: RowChoice;
 };
 
@@ -48,35 +47,55 @@ export function UploadForm({ players }: { players: ReviewPlayer[] }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ slug: string; name: string } | null>(null);
   const [pending, setPending] = useState(false);
+  const fileRequest = useRef(0);
   const playersById = useMemo(
     () => new Map(players.map((player) => [player.id, player])),
     [players],
   );
 
-  function onFile(event: ChangeEvent<HTMLInputElement>) {
+  async function onFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) {
       return;
     }
 
+    const requestId = ++fileRequest.current;
     setSuccess(null);
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
+      if (requestId !== fileRequest.current) {
+        return;
+      }
       const text = typeof reader.result === "string" ? reader.result : "";
       try {
+        const built = await buildReview(text, parseTrf(text));
+        if (requestId !== fileRequest.current) {
+          return;
+        }
+        if (!built.ok) {
+          setReview(null);
+          setError(built.error);
+          return;
+        }
         setError(null);
-        setReview(buildReview(text, parseTrf(text), players));
+        setReview(built.review);
       } catch (err) {
+        if (requestId !== fileRequest.current) {
+          return;
+        }
         setReview(null);
         setError(
           err instanceof TrfParseError
             ? polishParseError(err.message)
-            : "Nie udało się odczytać pliku TRF.",
+            : "Nie udało się dopasować zawodników.",
         );
       }
     };
     reader.onerror = () => {
+      if (requestId !== fileRequest.current) {
+        return;
+      }
       setReview(null);
       setError("Nie udało się odczytać pliku.");
     };
@@ -294,7 +313,9 @@ function PlayerRow({
         {row.position}. {row.firstName} {row.lastName} · {formatPoints(row.points)} pkt
       </p>
       <p className="text-sm text-muted-foreground">
-        {row.found ? "Znaleziono w bazie" : "Nie znaleziono w bazie"}
+        {row.suggestion
+          ? `Propozycja: ${row.suggestion.lastName} ${row.suggestion.firstName}`
+          : "Nie znaleziono w bazie"}
       </p>
       <label className="sr-only" htmlFor={selectId}>
         Zawodnik {row.firstName} {row.lastName}
@@ -415,36 +436,49 @@ function scoreLabel(result: ParsedTrfGame["result"]): string {
   }
 }
 
-function buildReview(trf: string, parsed: ParsedTrf, players: ReviewPlayer[]): ReviewState {
-  const byKey = new Map(
-    players.map((player) => [playerMatchKey(player.firstName, player.lastName), player]),
+async function buildReview(
+  trf: string,
+  parsed: ParsedTrf,
+): Promise<{ ok: true; review: ReviewState } | { ok: false; error: string }> {
+  const sortedPlayers = [...parsed.players].sort(
+    (a, b) => a.position - b.position || a.startNumber - b.startNumber,
   );
-
-  const rows = [...parsed.players]
-    .sort((a, b) => a.position - b.position || a.startNumber - b.startNumber)
-    .map((player) => {
-      const matched = byKey.get(playerMatchKey(player.firstName, player.lastName)) ?? null;
-      const choice: RowChoice = matched
-        ? { mode: "existing", playerId: matched.id }
-        : { mode: "new", firstName: player.firstName, lastName: player.lastName };
-      return {
-        startNumber: player.startNumber,
-        firstName: player.firstName,
-        lastName: player.lastName,
-        points: player.points,
-        position: player.position,
-        found: matched !== null,
-        choice,
-      };
-    });
+  const result = await suggestUploadPlayers(
+    sortedPlayers.map((player) => ({
+      firstName: player.firstName,
+      lastName: player.lastName,
+    })),
+  );
+  if (!result.ok || result.matches.length !== sortedPlayers.length) {
+    return {
+      ok: false,
+      error: result.ok ? "Nie udało się dopasować zawodników." : result.error,
+    };
+  }
 
   return {
-    trf,
-    name: parsed.name,
-    heldOn: parsed.heldOn,
-    chessManagerUrl: "",
-    rows,
-    games: parsed.games,
+    ok: true,
+    review: {
+      trf,
+      name: parsed.name,
+      heldOn: parsed.heldOn,
+      chessManagerUrl: "",
+      games: parsed.games,
+      rows: sortedPlayers.map((player, index) => {
+        const suggestion = result.matches[index] ?? null;
+        return {
+          startNumber: player.startNumber,
+          firstName: player.firstName,
+          lastName: player.lastName,
+          points: player.points,
+          position: player.position,
+          suggestion,
+          choice: suggestion
+            ? { mode: "existing" as const, playerId: suggestion.id }
+            : { mode: "new" as const, firstName: player.firstName, lastName: player.lastName },
+        };
+      }),
+    },
   };
 }
 

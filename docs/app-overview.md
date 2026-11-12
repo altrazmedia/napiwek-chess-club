@@ -25,9 +25,9 @@ Working name / repo: `napiwek-chess-club`.
 | Audience | How they use it |
 | --- | --- |
 | Club members and visitors | Open the site in a browser. No login. Browse tournaments, players, standings, and stats. |
-| Site operator (club person who has the data) | Upload a new tournament from the hidden `/upload` page, or by calling the upload API (curl, script, HTTP client). `/upload` is not in the navigation. |
+| Site operator (club person who has the data) | Upload a new tournament from the hidden `/upload` page. `/upload` is not in the navigation. |
 
-There are **no user accounts**. Visitors never authenticate. The operator does not log into the app either; they hold a **write token**, type it on `/upload`, or send it as a Bearer token to the upload API.
+There are **no user accounts**. Visitors never authenticate. The operator does not log into the app either; they hold a **write token** and type it on `/upload`.
 
 UI language is **Polish only** (hardcoded copy). Assume club members are the primary readers.
 
@@ -135,34 +135,32 @@ Played games are only `white_win`, `black_win`, and `draw`. Byes, forfeits, and 
 
 ### Upload a tournament
 
-There is an **HTTP API** and one unlinked page. `/upload` is the only operator UI. Do not add it to the navigation. Do not build a back-office (no accounts, no delete, no edit after save, no other admin pages).
-
-**API (locked):** FIDE-style **TRF** text, posted as the raw body to `POST /api/upload-tournament-trf` with a Bearer token. The handler creates the tournament, roster, games, and official standings (place + points; tie-breaks null when absent from TRF). Player matching on this route is automatic. Do not add another write route.
+`/upload` is the only operator UI, and the only way to add a tournament. Do not add it to the navigation. Do not add an upload API. Do not build a back-office (no accounts, no delete, no edit after save, no other admin pages).
 
 **Page (locked):** `/upload`. A failed player-list load is an error and no form. An empty club still shows the form.
 
-1. The operator picks a TRF file. The browser reads it and parses it with the same TRF parser as the API. A bad file shows an error and stays on this step.
-2. Review: editable name and date, prefilled from the file. The public address is that date. Optional Chess Manager URL, stored as null when blank. A non-blank value must be an `https` URL on `chessmanager.com` or `www.chessmanager.com`, with no username, password, or explicit port. Any path, query, or fragment is kept as typed. Anything else blocks save. Players are ordered by official place. Each row shows place, points, the name from the file, and whether the initial name match found a database player. That match status does not change if the operator overrides the row. Every row can stay a new player or be attached to an existing one (players listed by last name, then first name). A match defaults to that player. A miss defaults to a new player, with editable first and last name prefilled from the file. Choosing an existing player does not rename them. Choosing a new player again prefills the file name. Games are read-only, in parsed round order (not re-sorted by last name), and use the same result kinds as the tournament page. Names in the games follow the current choice. The token is entered for this save and is not stored. Cancel returns to the file step and clears the token.
+1. The operator picks a TRF file. The browser reads it and parses it. A bad file shows an error and stays on this step. After a successful parse, the page requests one player suggestion per row. A failed lookup shows an error and stays on this step.
+2. Review: editable name and date, prefilled from the file. The public address is that date. Optional Chess Manager URL, stored as null when blank. A non-blank value must be an `https` URL on `chessmanager.com` or `www.chessmanager.com`, with no username, password, or explicit port. Any path, query, or fragment is kept as typed. Anything else blocks save. Players are ordered by official place. Each row shows place, points, the name from the file, and the suggested database player when one was found. That suggestion does not change if the operator overrides the row. Every row can stay a new player or be attached to an existing one (players listed by last name, then first name). A suggestion defaults to that player. No suggestion defaults to a new player, with editable first and last name prefilled from the file. Choosing an existing player does not rename them. Choosing a new player again prefills the file name. Games are read-only, in parsed round order (not re-sorted by last name), and use the same result kinds as the tournament page. Names in the games follow the current choice. The token is entered for this save and is not stored. Cancel returns to the file step and clears the token.
 3. Success: clear the form and the token, and link to `/turnieje/{slug}`. Choosing another file clears that success state.
 4. Errors: one message. A save error keeps the review data and the token.
 
-Save is a server action. It checks the token, re-parses the TRF, and writes places, points, and games from the file. The operator's name, date, player choices, and optional Chess Manager URL override only identity, the tournament title/date, and that URL. The TRF API leaves the URL null. Block save when the name, date, token, or a new player's first or last name is empty; the Chess Manager field is not a valid https URL on chessmanager.com; two rows use the same existing player; a new name matches an existing player; or a new player's slug would collide with another new player or an existing one.
+Save is a server action. It checks the token, re-parses the TRF, and writes places, points, and games from the file. The operator's name, date, player choices, and optional Chess Manager URL override only identity, the tournament title/date, and that URL. Block save when the name, date, token, or a new player's first or last name is empty; the Chess Manager field is not a valid https URL on chessmanager.com; two rows use the same existing player; a new name matches an existing player by exact first and last name; or a new player's slug would collide with another new player or an existing one.
 
-**Player identity on upload (locked):** match existing players by **first name + last name**, case-insensitive and accent-insensitive. TRF names are `"Lastname, Firstname"` or `"Firstname Lastname"`. The API attaches that match automatically. The page uses the same match to prefill each row, then saves the operator's choice: an existing player id, or a new first and last name. A new name that matches an existing player is rejected; the operator must pick that player. New players get slug `firstname-lastname` (ASCII-folded kebab). Tournament slug is the start date `YYYY-MM-DD` (API: TRF `042`; page: the edited date). Re-upload of the same date slug is rejected (`409` on the API; an error on the page).
+**Player identity on upload (locked):** the page suggests one existing player per row by trigram similarity of the full name: `lower(full_name)` against `lower(first last)`, threshold `0.3`. The highest score wins. Equal scores are ordered by last name, then first name, then id. The operator confirms by saving that row or by choosing another player or a new name. TRF names are `"Lastname, Firstname"` or `"Firstname Lastname"`. Save stores the operator's choice: an existing player id, or a new first and last name. A new name that matches an existing player by first name + last name, case-insensitive and accent-insensitive, is rejected; the operator must pick that player. A suggestion that is only similar can be declined and saved as a new player. New players get slug `firstname-lastname` (ASCII-folded kebab). Tournament slug is the start date `YYYY-MM-DD` from the edited date. Re-upload of the same date slug is an error on the page.
 
 ## Important product decisions
 
 ### Public read, token write
 
-- **Anyone** may browse pages and (if we expose them) read APIs.
-- **Uploading** requires a shared secret. The curl route reads it from an `Authorization: Bearer <token>` header. The `/upload` page sends the same secret to its server action. Token lives in an environment variable. Operator keeps it in a password manager / script env. The page does not store it.
+- **Anyone** may browse pages.
+- **Uploading** requires a shared secret. The `/upload` save action receives it as an argument. Token lives in an environment variable. Operator keeps it in a password manager. The page does not store it. The player-suggestion action does not check the token; it only reads public player names.
 - This is **not** user auth: no sessions, no OAuth, no roles, no per-user permissions.
 
 Rationale: the site is meant to be opened by club members without accounts. A public Vercel URL with an unprotected `POST` would allow anyone to inject fake results.
 
 ### No admin panel
 
-The only operator UI is the unlinked `/upload` page described above. Other operator tasks (and later maybe delete/edit if we add them) go through API endpoints. Do not build a back-office.
+The only operator UI is the unlinked `/upload` page described above. Edit and delete after upload are not decided. Do not build a back-office.
 
 ### Simple over complete
 
@@ -184,7 +182,7 @@ If a computed number could disagree with an official standing, show official sta
 
 ### Time range is a first-class filter
 
-All-time vs date-bounded views are part of the idea, not a nice-to-have. Implementation should make “filter games/tournaments by date, then aggregate” natural. Do not bake “all time only” into the data model or APIs in a way that makes ranges hard.
+All-time vs date-bounded views are part of the idea, not a nice-to-have. Implementation should make “filter games/tournaments by date, then aggregate” natural. Do not bake “all time only” into the data model or the query functions in a way that makes ranges hard.
 
 ### Charts
 
@@ -195,11 +193,11 @@ The player-page points-share chart is in scope. See [Browse stored tournaments](
 | Topic | Status |
 | --- | --- |
 | Postgres schema | Decided. See [schema.md](./schema.md). |
-| How the same person is recognized across tournaments | Decided for upload: first+last, case- and accent-insensitive. Schema still stores non-unique names. |
+| How the same person is recognized across tournaments | Decided for upload: the page suggests with `pg_trgm` similarity `0.3` on the lowercased full name. Saving a new player still rejects an exact first+last match, case- and accent-insensitive. Schema still stores non-unique names. |
 | Statistics page catalog | Decided. See [Statistics](#statistics). |
 | Player page | Decided. See [Browse stored tournaments](#browse-stored-tournaments). |
 | Head-to-head | Decided. See [Head-to-head](#head-to-head). |
-| Upload body format | Decided: TRF at `POST /api/upload-tournament-trf`. The hidden `/upload` page reviews that file, then saves through a server action. |
+| Upload body format | Decided: a TRF file on the hidden `/upload` page. The page reviews that file, then saves through a server action. There is no upload API. |
 | Charts | The player points-share chart is decided. Other charts are later. Do not add a chart library. |
 | Tie-breaks on the tournament page | Later. Values stay in `standings`. The page shows place, player, and points. |
 | Chess Manager URL on public pages | Later. The value stays in `tournaments.chess_manager_url`. Public tournament views do not show it. |
@@ -208,4 +206,4 @@ The player-page points-share chart is in scope. See [Browse stored tournaments](
 
 ## Success criteria (v1 direction)
 
-A visitor can, without logging in, browse club tournaments and see useful aggregate stats in Polish, including over a chosen time range. The operator can add a finished tournament via the hidden `/upload` page or the protected API. The project stays a single small web app on free-tier hosting, without accounts or an admin dashboard.
+A visitor can, without logging in, browse club tournaments and see useful aggregate stats in Polish, including over a chosen time range. The operator can add a finished tournament via the hidden `/upload` page. The project stays a single small web app on free-tier hosting, without accounts or an admin dashboard.
