@@ -115,7 +115,9 @@ export function StandingsTable({ standings }: { standings: StandingRow[] }) {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className={cn("px-4 py-5", divided, place ? textClassName[place] : "")}>
+                  <TableCell
+                    className={cn("px-4 py-5", divided, place ? textClassName[place] : "")}
+                  >
                     <Link
                       href={routes.player(standing.player.slug)}
                       className="text-sm font-medium hover:underline"
